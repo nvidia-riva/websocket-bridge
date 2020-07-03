@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Jarvis Contact</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/minty/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io-stream/0.9.1/socket.io-stream.js"></script>
+    <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
+    <script src="displacy-ent/assets/js/displacy-ent.js"></script>
+    <script src="main.js"></script>
+    <link rel="stylesheet" href="displacy-ent/assets/css/displacy-ent.css">
+    <link rel="stylesheet" href="displacy-ent/assets/css/style.css">
+<!--    <link rel="stylesheet" href="style.css"> -->
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header py-4">
+          <div class="row d-flex justify-content-center">
+            <h1 class="mb-0 py-2 font-weight-bold">Jarvis Contact</h1>
+          </div>
+          <p class="lead d-flex justify-content-center">
+              Peer-to-peer video chat, with real-time transcription and annotation powered by NVIDIA Jarvis
+          </p>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-4 mb-3">
+                <div class="card">
+                    <div class="card-header">Connection</div>
+            <div class="card-body">
+                  <form>
+                      <div class="form-row">
+                          <div class="form-group col">
+                              <span id="your_id">Your ID:</span>
+                          </div>
+                      </div>
+                      <div class="form-row">
+                          <!--
+                          <div class="form-group align-self-end col-sm-3">
+                              <label for="name">Name</label>
+                          </div> -->
+                          <div class="form-group col-sm-8">
+                              <input type="text" class="form-control form-control-sm" id="name" placeholder="Your name">
+                          </div>
+                          <div class="form-group col-sm-4"><button id="name_btn" type="submit" class="btn btn-primary btn-sm w-100">Set</button></div>
+                      </div>
+                      <div class="form-row">
+                          <!--
+                          <div class="form-group align-self-end col-sm-3">
+                              <label for="peer_id">Peer ID</label>
+                          </div> -->
+                          <div class="form-group col-sm-8">
+                              <input type="text" class="form-control form-control-sm" id="peer_id" placeholder="Peer ID">
+                          </div>
+                          <div class="form-group col-sm-4">
+                              <button id="call" type="submit" class="btn btn-primary btn-sm w-100">Call</button>
+                          </div>
+                      </div>
+                  </form>
+            </div>
+        </div>
+            </div>
+            <div class="col-sm-4 mb-3">
+                <div class="card">
+                    <div id="self_cam_label" class="card-header">Your camera</div>
+            <div class="card-body">
+              <div class="col-sm-4">
+                  <div class="text-center">
+                      <video id="my-camera"  width="200" height="145" autoplay="autoplay" muted="true" class="mx-auto d-block"></video>
+                  </div>
+              </div>
+            </div>
+        </div>
+            </div>
+            <div class="col-sm-4  mb-3">
+                <div class="card">
+                    <div id="peer_cam_label" class="card-header">Peer camera</div>
+            <div class="card-body">
+              <div class="col-sm-4">
+                  <div class="text-center">
+                      <video id="peer-camera"  width="200" height="145" autoplay="autoplay" class="mx-auto d-block"></video>
+                  </div>
+              </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                      <div class="form-row">
+                          <div class="form-group align-self-end col mb-0">
+                              <label for="jarvis-btn">Jarvis transcription</label>
+                          </div>
+                          <div class="form-group col-sm-2 mb-0">
+                              <button id="jarvis-btn" type="submit" class="btn btn-primary btn-sm w-100" disabled>Start</button>
+                          </div>
+                      </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-10">
+                        <div class="card card-body">
+                            <table id="transcription_area">
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AREA FOR SHOWING INPUT FIELD -->
+                <div class="row">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-10">
+                        <form id="input_form">
+                            <div class="form-row">
+                              <div class="form-group col">
+                                <input type="text" class="form-control form-control-sm" id="input_field"
+                                       placeholder="Enter some text to annotate">
+                              </div>
+                              <div class="form-group col-sm-2">
+                                  <button id="submit_text" type="submit" class="btn btn-primary btn-sm w-100">Submit</button>
+                              </div>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="autosubmitcheck" checked="checked">
+                                <label class="form-check-label" for="autosubmitcheck">Send input automatically</label>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="clearfix visible-xs-block"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
