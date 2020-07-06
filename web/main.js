@@ -204,20 +204,18 @@ function showAnnotatedTranscript(speaker, annotations, text) {
     var container = document.createElement('tr');
     container.setAttribute('class', 'message');
     container.setAttribute('class', 'clearfix');
+    if (speaker == username) {
+        container.setAttribute('style', 'text-align:right');
+    }
 
-    console.log("showAnnotatedTranscript: " +  text)
+//    console.log("showAnnotatedTranscript: " +  text);
 
-    // TODO: find/create better CSS style for this
     container.innerHTML = "<p class=\"text-info mb-1\"><small><strong>" + speaker + ":</strong></small></p>";
     displacy.render(container, text, annotations.spans, annotations.ents);
 
-    setTimeout(function () {
-        $("#transcription_area tbody").append(container);
-        // scroll to bottom of page
-        setTimeout(function () {
-            $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
-        }, 1);
-    }, 1000);
+    $("#transcription_area tbody").append(container);
+    $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
+    $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
 }
 
 // ---------------------------------------------------------------------------------------
@@ -246,7 +244,7 @@ function listenASR() {
  * @param {Object} callbacks
  */
 function requestLocalVideo(callbacks) {
-    // Monkeypatch for crossbrowser getUserMedia
+//    // Monkeypatch for crossbrowser getUserMedia
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
     // Request audio and video
@@ -360,6 +358,7 @@ $(document).ready(function () {
         port: 9000,
         path: '/peerjs',
         debug: 3,
+        secure: true,
         config: {
             'iceServers': [
                 { url: 'stun:stun1.l.google.com:19302' },
