@@ -45,7 +45,7 @@ class displaCyENT {
         xhr.send(JSON.stringify({ text, model }));
     }
 
-    render(container, text, spans, ents) {
+    render(container, text, spans, ents = null) {
 //        this.container.innerHTML = '';
 //        this.container.appendChild(document.createElement('br'));
         let offset = 0;
@@ -59,7 +59,7 @@ class displaCyENT {
                 if(fragments.length > 1 && i != fragments.length - 1) container.appendChild(document.createElement('br'));
             });
 
-            if(ents.includes(type.toLowerCase())) {
+            if(ents == undefined || ents.includes(type.toLowerCase())) {
                 const mark = document.createElement('mark');
                 mark.setAttribute('data-entity', type.toLowerCase());
                 mark.appendChild(document.createTextNode(entity));

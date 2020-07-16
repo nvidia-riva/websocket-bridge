@@ -50,6 +50,13 @@
 [data-entity][data-entity=person]:after {
   background: #a6e22d;
 }
+[data-entity][data-entity=per] {
+  background: rgba(166, 226, 45, 0.2);
+  border-color: #a6e22d;
+}
+[data-entity][data-entity=per]:after {
+  background: #a6e22d;
+}
 [data-entity][data-entity=norp] {
   background: rgba(224, 0, 132, 0.2);
   border-color: #e00084;
