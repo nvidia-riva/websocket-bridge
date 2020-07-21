@@ -1,4 +1,18 @@
-// Client-side Jarvis call transcription
+/**
+ * Copyright 2020 NVIDIA Corporation. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 const id = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 const socketio = io();
@@ -14,39 +28,39 @@ var peerStream;
 var audioContext;
 var sampleRate;
 var jarvisRunning = false;
-
-var endpoint;
-var host_ip;
-var session = '';
-
-var recordAudio;
 var socket;
 
 var scrollToBottomTime = 500;
 var displacy;
 var ents;
+var latencyTimer;
 
 // ---------------------------------------------------------------------------------------
-// Gets parameter by name
+// Latency tracking
 // ---------------------------------------------------------------------------------------
-function getParameterByName(name, url) {
-    var arr = url.split('#');
-    var match = RegExp('[?&]' + name + '=([^&]*)')
-        .exec(arr[0]);
-    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
-}
-
-// ---------------------------------------------------------------------------------------
-// Get service endpoint from URL parameters
-// ---------------------------------------------------------------------------------------
-function getEndpoint() {
-    // Get endpoint from URL
-    var endpoint = getParameterByName("e", window.location.href);
-    // Use default, if no endpoint is present
-    if (endpoint == null) {
-        endpoint = window.location.protocol + "\/\/" + window.location.host + "/";
+class LatencyTimer {
+    constructor() {
+        this.startTimes = new Array();
+        this.latencies = new Array();
     }
-    return endpoint;
+
+    start(data=null) {
+        return this.startTimes.push({start: performance.now(), data: data}) - 1;
+    }
+
+    end(index) {
+        if (index >= this.startTimes.length) {
+            return 0;
+        }
+        var latency = Math.round(performance.now() - this.startTimes[index].start);
+        this.latencies.push(latency);
+        return {latency: latency, data: this.startTimes[index].data};
+    }
+
+    average() {
+        const sum = this.latencies.reduce((a, b) => a + b, 0);
+        return Math.round((sum / this.latencies.length) || 0);
+    }
 }
 
 function setPeerUsername(peerName) {
@@ -62,6 +76,7 @@ function startJarvisService() {
         return;
     }
     document.getElementById('jarvis-btn').disabled = true;
+    latencyTimer = new LatencyTimer();
 
     console.log('Trying to start socket connection');
     if (socket == null) {
@@ -97,7 +112,6 @@ function startJarvisService() {
         });
         worker.onmessage = function(msg) {
             if (msg.data.command == 'newBuffer') {
-                // console.log('Emit audio');
                 socket.emit('audio_in', msg.data.resampled.buffer);
             }
         };
@@ -127,6 +141,11 @@ function startJarvisService() {
             if (conn != undefined) {
                 conn.send({from: username, type: 'transcript', annotations: result.annotations, text: result.transcript});
             }
+            if (result.latencyIndex !== undefined) {
+                var latencyResult = latencyTimer.end(result.latencyIndex);
+                console.log(latencyResult.data.name + ': ' + latencyResult.latency.toString() + ' ms');
+                console.log('Average latency (overall): ' + latencyTimer.average().toString() + ' ms');
+            }
         }
     });
 
@@ -134,7 +153,7 @@ function startJarvisService() {
     document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
     var connArea = document.getElementById('connection_status');
     var jarvisDiv = document.createElement('div');
-    jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis connected</strong></p>';
+    jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis is connected</strong></p>';
     connArea.appendChild(jarvisDiv);
 
     socket.emit('get_supported_entities');
@@ -167,7 +186,6 @@ function showAnnotatedTranscript(speaker, annotations, text) {
     var textContainer = document.createElement('div');
     if (speaker == username) {
         nameContainer.setAttribute('class', 'd-flex justify-content-end');
-        // textContainer.setAttribute('class', 'd-flex justify-content-end');
         textContainer.setAttribute('class', 'row justify-content-end mx-0');
     }
 
@@ -191,7 +209,6 @@ function requestLocalVideo(callbacks) {
 
     // Request audio and video
     navigator.getUserMedia({ audio: true, video: true }, callbacks.success , callbacks.error);
-    // navigator.getUserMedia({ audio: true }, callbacks.success , callbacks.error);
 }
 
 /**
@@ -205,9 +222,6 @@ function onReceiveStream(stream, element_id) {
     var video = document.getElementById(element_id);
     // Set the given stream as the video source
     video.srcObject = stream;
-
-    // Store a global reference of the stream
-//        peerStream = stream;
 }
 
 /**
@@ -240,9 +254,6 @@ function handleMessage(data) {
 // When the document is ready
 // ---------------------------------------------------------------------------------------
 $(document).ready(function () {
-    // Get endpoint from URL address
-    endpoint = getEndpoint();
-
     // Start DisplaCy for the NER rendering
     displacy = new displaCyENT('http://localhost:8000', {})
 
@@ -301,7 +312,7 @@ $(document).ready(function () {
     peer.on('call', function (call) {
         var acceptsCall = confirm("Video call incoming, do you want to accept it ?");
 
-        if(acceptsCall){
+        if(acceptsCall) {
             // Answer the call with your own video/audio stream
             call.answer(localStream);
             startJarvisService();
@@ -317,9 +328,7 @@ $(document).ready(function () {
             call.on('close', function(){
                 alert("The video call has finished");
             });
-
-            // use call.close() to finish a call
-        }else{
+        } else {
             console.log("Call denied !");
         }
     });
@@ -412,7 +421,10 @@ $(document).on("submit", "#input_form", function (e) {
     let text = $('#input_field').val();
     console.log("text: " + text);
 
-    socket.emit('nlp_request', text);
+    socket.emit('nlp_request', {
+        text: text,
+        latencyIndex: latencyTimer.start({name: 'NLP request'})
+    });
     // Erase input field
     $('#input_field').val("");
 });

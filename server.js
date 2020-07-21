@@ -99,7 +99,6 @@ function setupServer() {
 
             // Final transcripts also get sent to NLP before returning
             if (result.is_final) {
-                // this needs to be a promise that emits the result when it resolves
                 nlp.getJarvisNer(result.transcript)
                 .then(function(nerResult) {
                     result.annotations = nerResult;
@@ -115,42 +114,29 @@ function setupServer() {
 
         // incoming audio
         socket.on('audio_in', (data) => {
-            // console.log('Receive audio');
             socket.handshake.session.asr.recognizeStream.write({audio_content: data});
         });
 
         // NLP-only request
-        socket.on('nlp_request', (text) => {
-            nlp.getJarvisNer(text)
+        socket.on('nlp_request', (data) => {
+            nlp.getJarvisNer(data.text)
             .then(function(nerResult) {
                 console.log('Emit of NLP request');
                 console.log(nerResult);
-                socket.emit('transcript', {transcript: text, is_final: true, annotations: nerResult});
+                socket.emit('transcript', {
+                    transcript: data.text,
+                    is_final: true,
+                    annotations: nerResult,
+                    latencyIndex: data.latencyIndex
+                });
             }, function(error) {
-                socket.emit('transcript', {transcript: text, annotations: {err: error}});
+                socket.emit('transcript', {transcript: data.text, annotations: {err: error}, latencyIndex: data.latencyIndex});
             });
         });
 
         // Get the list of supported entities
         socket.on('get_supported_entities', () => {
             socket.emit('supported_entities', process.env.JARVIS_NER_ENTITIES);
-        });
-    });
-};
-
-function testNLP() {
-    var sents = [
-        'My doctor tested my blood sugar levels yesterday.',
-        'She says my levels are high and I might have type two diabetes.',
-        'I do not want diabetes because diabetes is awful.'
-    ];
-    sents.forEach(sent => {
-        nlp.getJarvisNer(sent)
-        .then(function(nerResult) {
-            console.log('Test Promise resolution, should see same NER result as directly above:');
-            console.log(nerResult.ner);
-        }, function(error) {
-            console.log(error);
         });
     });
 };
