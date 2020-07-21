@@ -46,8 +46,6 @@ class displaCyENT {
     }
 
     render(container, text, spans, ents = null) {
-//        this.container.innerHTML = '';
-//        this.container.appendChild(document.createElement('br'));
         let offset = 0;
 
         spans.forEach(({ type, start, end }) => {

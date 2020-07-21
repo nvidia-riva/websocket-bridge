@@ -13,6 +13,7 @@ var localStream;
 var peerStream;
 var audioContext;
 var sampleRate;
+var jarvisRunning = false;
 
 var endpoint;
 var host_ip;
@@ -23,6 +24,7 @@ var socket;
 
 var scrollToBottomTime = 500;
 var displacy;
+var ents;
 
 // ---------------------------------------------------------------------------------------
 // Gets parameter by name
@@ -47,10 +49,18 @@ function getEndpoint() {
     return endpoint;
 }
 
+function setPeerUsername(peerName) {
+    peer_username = peerName;
+    document.getElementById("peer_cam_label").innerHTML = peer_username;
+}
+
 // ---------------------------------------------------------------------------------------
 // Start Jarvis, whether triggered locally or by a message from peer
 // ---------------------------------------------------------------------------------------
 function startJarvisService() {
+    if (jarvisRunning) {
+        return;
+    }
     document.getElementById('jarvis-btn').disabled = true;
 
     console.log('Trying to start socket connection');
@@ -97,6 +107,7 @@ function startJarvisService() {
     audioInput.connect(recorder);
     // connect our recorder to the previous destination
     recorder.connect(audio_context.destination);
+    jarvisRunning = true;
 
     console.log('Streaming audio to server')
 
@@ -119,7 +130,29 @@ function startJarvisService() {
         }
     });
 
-    document.getElementById('submit_text').removeAttribute("disabled");
+    document.getElementById('submit_text').removeAttribute('disabled');
+    document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
+    var connArea = document.getElementById('connection_status');
+    var jarvisDiv = document.createElement('div');
+    jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis connected</strong></p>';
+    connArea.appendChild(jarvisDiv);
+
+    socket.emit('get_supported_entities');
+    socket.on('supported_entities', function(response) {
+        var entityHeader, entityDiv, ner;
+        ents = response.split(',');
+        console.log('Supported entities: ' + response);
+        // Render a legend from the entity list
+        entityHeader = document.createElement('div');
+        entityHeader.innerHTML = '<p class=\"mb-1\">Entities being tagged:</p>';
+        connArea.appendChild(entityHeader);
+        entityDiv = document.createElement('div');
+        ner = ents.map(function(type){ 
+            return {'start': 0, 'end': 0, 'type': type};
+        });
+        displacy.render(entityDiv, '', ner, ents);
+        connArea.append(entityDiv);
+    });
 }
 
 // ---------------------------------------------------------------------------------------
@@ -130,20 +163,19 @@ function showAnnotatedTranscript(speaker, annotations, text) {
     if(!annotations)
         return;
 
-    var container = document.createElement('tr');
-    container.setAttribute('class', 'message');
-    container.setAttribute('class', 'clearfix');
+    var nameContainer = document.createElement('div');
+    var textContainer = document.createElement('div');
     if (speaker == username) {
-        container.setAttribute('style', 'text-align:right');
+        nameContainer.setAttribute('class', 'd-flex justify-content-end');
+        // textContainer.setAttribute('class', 'd-flex justify-content-end');
+        textContainer.setAttribute('class', 'row justify-content-end mx-0');
     }
 
-//    console.log("showAnnotatedTranscript: " +  text);
+    nameContainer.innerHTML = "<p class=\"text-info mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
+    displacy.render(textContainer, text, annotations.ner, annotations.ents);
 
-    container.innerHTML = "<p class=\"text-info mb-1\"><small><strong>" + speaker + ":</strong></small></p>";
-    displacy.render(container, text, annotations.ner);
-    // displacy.render(container, text, annotations.spans, annotations.ents);
-
-    $("#transcription_area tbody").append(container);
+    $("#transcription_area").append(nameContainer);
+    $("#transcription_area").append(textContainer);
     $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
     $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
 }
@@ -191,7 +223,13 @@ function handleMessage(data) {
             startJarvisService();
             break;
         case 'transcript':
+            if (data.from != peer_username) {
+                setPeerUsername(data.from);
+            }
             showAnnotatedTranscript(data.from, data.annotations, data.text);
+            break;
+        case 'username':
+            setPeerUsername(data.from);
             break;
         default:
             console.log('Received unknown message from peer, of type ' + data.type);
@@ -245,7 +283,8 @@ $(document).ready(function () {
     peer.on('connection', function (connection) {
         conn = connection;
         peer_id = connection.peer;
-        console.log("Received connection request from peer " + peer_id);
+        setPeerUsername(conn.metadata.username);
+        console.log("Received connection request from " + peer_username);
 
         // Use the handleMessage to callback when a message comes in
         conn.on('data', handleMessage);
@@ -265,13 +304,13 @@ $(document).ready(function () {
         if(acceptsCall){
             // Answer the call with your own video/audio stream
             call.answer(localStream);
+            startJarvisService();
 
             // Receive data
             call.on('stream', function (stream) {
                 peerStream = stream;
                 // Display the stream of the other user in the peer-camera video element
                 onReceiveStream(stream, 'peer-camera');
-                document.getElementById('jarvis-btn').removeAttribute("disabled");
             });
 
             // Handle when the call finishes
@@ -303,7 +342,7 @@ $(document).ready(function () {
         }
     });
 
-    // TEMP: early access to jarvis button for testing
+    // Allow us to launch Jarvis with only the local speaker
     document.getElementById('jarvis-btn').removeAttribute("disabled");
 });
 
@@ -316,8 +355,9 @@ $(document).on("click", "#name_btn", function (e) {
     username = $('#name').val();
     console.log("username: " + username);
     document.getElementById("self_cam_label").innerHTML = username;
-
-    // TODO: clear the dropdown and cursor
+    if (conn != undefined) {
+        conn.send({from: username, type: 'username'});
+    }
 });
 
 // ---------------------------------------------------------------------------------------
@@ -343,19 +383,18 @@ $(document).on("click", "#call", function (e) {
     // Call the peer
     console.log('Calling peer ' + peer_id);
     var call = peer.call(peer_id, localStream);
+    setPeerUsername('User ' + peer_id.toString());
     call.on('stream', function (stream) {
         peerStream = stream;
         onReceiveStream(stream, 'peer-camera');
-        document.getElementById('jarvis-btn').removeAttribute("disabled");
     });
+    startJarvisService();
 });
 
 /**
  * On clicking the Transcription button, start Jarvis
  */
 $(document).on("click", "#jarvis-btn", function (e) {
-    // TODO: check if Jarvis already started. If so, pause it?
-
     // Send message to peer to also connect to Jarvis, then start my own connection
     if (conn != undefined) {
         conn.send({from: username, type: 'startJarvis'});

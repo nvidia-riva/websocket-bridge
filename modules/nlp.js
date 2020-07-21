@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+require('dotenv').config({path: 'env.txt'});
+
 var nlpCoreProto = 'src/jarvis_proto/jarvis_nlp_core.proto';
 var protoRoot = __dirname + '/protos/';
 var grpc = require('grpc');
@@ -30,8 +32,9 @@ var protoOptions = {
 var nlpCorePkgDef = protoLoader.loadSync(nlpCoreProto, protoOptions);
 
 var jCoreNLP = grpc.loadPackageDefinition(nlpCorePkgDef).nvidia.jarvis.nlp;
-// TODO: move URL to config
-var nlpClient = new jCoreNLP.JarvisCoreNLP("0.0.0.0:50051", grpc.credentials.createInsecure());
+var nlpClient = new jCoreNLP.JarvisCoreNLP(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
+
+var supported_entities = process.env.JARVIS_NER_ENTITIES.split(',');
 
 // Find the longest common subsequence that begins at the start of the mention,
 // since the NER tagger may produce unintended non-contiguous spans
@@ -100,7 +103,7 @@ function getJarvisNer(text) {
     req = {
         text: [text],
         model: {
-            model_name: 'jarvis_ner_i2b2'   // TODO: move to config
+            model_name: process.env.JARVIS_NER_MODEL
         }
     };
 
@@ -115,7 +118,7 @@ function getJarvisNer(text) {
                     console.log('[Jarvis NLU] NER response results');
                     console.log(entities);
                 }
-                resolve({ner: entities});
+                resolve({ner: entities, ents: supported_entities});
             }
         });
     });

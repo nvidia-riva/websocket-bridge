@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+require('dotenv').config({path: 'env.txt'});
+
 const defaultRate = 16000;
 const languageCode = 'en-US';
 
@@ -43,8 +45,7 @@ var jAsr = grpc.loadPackageDefinition(asrPkgDef).nvidia.jarvis.asr;
 class ASRPipe {
     setupASR() {
         // the Jarvis ASR client
-        // TODO: move URL to config
-        this.asrClient = new jAsr.JarvisASR("0.0.0.0:50051", grpc.credentials.createInsecure());
+        this.asrClient = new jAsr.JarvisASR(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
                 config: {

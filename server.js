@@ -80,7 +80,6 @@ function setupServer() {
         console.log(`Client connected [id=${socket.id}]`);
 
         // Initialize Jarvis
-        // TODO: consider running this when we hit the "start transcription" button, rather than at loading time
         console.log('Initializing Jarvis ASR');
         socket.handshake.session.asr = new ASRPipe();
         socket.handshake.session.asr.setupASR();
@@ -124,11 +123,18 @@ function setupServer() {
         socket.on('nlp_request', (text) => {
             nlp.getJarvisNer(text)
             .then(function(nerResult) {
-                socket.emit('transcript', {transcript: text, annotations: nerResult});
+                console.log('Emit of NLP request');
+                console.log(nerResult);
+                socket.emit('transcript', {transcript: text, is_final: true, annotations: nerResult});
             }, function(error) {
                 socket.emit('transcript', {transcript: text, annotations: {err: error}});
             });
-        })
+        });
+
+        // Get the list of supported entities
+        socket.on('get_supported_entities', () => {
+            socket.emit('supported_entities', process.env.JARVIS_NER_ENTITIES);
+        });
     });
 };
 
