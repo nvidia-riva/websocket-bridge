@@ -2,7 +2,7 @@
 
 Jarvis Contact is a web-based demonstration app for contact center applications, combining peer-to-peer video chat with streaming automatic speech recognition (ASR) and natural language processing (NLP). It is a lightweight Node.js application, backed by robust NVIDIA Jarvis AI Services.
 
-<Add screenshot here>
+![contact-screenshot](doc/contact-screenshot.png "Jarvis Contact")
 
 Users can chat using a direct, peer-to-peer WebRTC-based video connection. In the background, each user's web client sends a separate audio stream to the Jarvis Contact server. The server makes a streaming gRPC call to hosted Jarvis AI Services, which return an ongoing stream of ASR transcripts. This stream of transcripts is handed back to the speaker's web client, who can see how the in-progress results may change as they speak.
 
