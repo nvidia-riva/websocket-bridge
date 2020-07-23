@@ -12,7 +12,7 @@ Once the NER results are complete, the Jarvis Contact server returns the final t
 
 We hope this application offers a launching pad for your own development. One possibility would be to use the transcripts and tagged entities for downstream analytics and visualization. We encourage you to experiment, and would love to hear about what you build.
 
-![jarvis-contact-architecture](.\doc\jarvis-contact-architecture.png)
+![jarvis-contact-architecture](doc/jarvis-contact-architecture.png "Jarvis Contact Architecture")
 
 
 
