@@ -23,7 +23,7 @@ Jarvis Contact is a Node.js application, intended to run in a Linux environment.
 - Streaming ASR
 - Named Entity Recognition
 
-You are welcome to use the default Jarvis models offered in the Quick Start configuration, or you may deploy your own custom models trained using [NVIDIA NeMo](https://developer.nvidia.com/nvidia-nemo) and imported into Jarvis. See the Jarvis AI Services documentation for more details.
+You are welcome to use the default Jarvis models offered in the Quick Start configuration, or you may deploy your own custom models trained using [NVIDIA NeMo](https://developer.nvidia.com/nvidia-nemo) and imported into Jarvis. Jarvis Contact comes pre-configured to use the models from Jarvis Quick Start. See the Jarvis AI Services documentation for more details.
 
 ## Installation
 
