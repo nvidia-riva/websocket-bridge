@@ -208,7 +208,12 @@ function requestLocalVideo(callbacks) {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
     // Request audio and video
-    navigator.getUserMedia({ audio: true, video: true }, callbacks.success , callbacks.error);
+    // Try getting video, if it fails then go for audio only
+    navigator.getUserMedia({ audio: true, video: true }, callbacks.success, 
+        function() { // error -- can't access video. Try audio only
+            navigator.getUserMedia({ audio: true}, callbacks.success ,callbacks.error);
+        }
+    );
 }
 
 /**
@@ -346,7 +351,7 @@ $(document).ready(function () {
             onReceiveStream(stream, 'my-camera');
         },
         error: function(err){
-            alert("Cannot get access to your camera and video!");
+            alert("Cannot get access to your camera and microphone.");
             console.error(err);
         }
     });
