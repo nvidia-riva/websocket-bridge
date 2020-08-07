@@ -31,6 +31,7 @@ var sampleRate;
 var jarvisRunning = false;
 var callActive = false;
 var muted = false;
+var videoEnabled = true;
 var socket = socketio.on('connect', function() {
     console.log('Socket connected to speech server');
 });
@@ -488,6 +489,13 @@ function setAudioEnabled(enabled) {
     }
 }
 
+function setVideoEnabled(enabled) {
+    if (!localStream) return;
+    for (const track of localStream.getVideoTracks()) {
+        track.enabled = enabled;
+    }
+}
+
 // ---------------------------------------------------------------------------------------
 // On mute button, which should mute both call audio and Jarvis ASR
 // ---------------------------------------------------------------------------------------
@@ -511,7 +519,31 @@ $(document).on("click", "#mute-btn", function (e) {
         setAudioEnabled(true);
         muted = false;
     }
-    
+});
+
+// ---------------------------------------------------------------------------------------
+// On mute button, which should mute both call audio and Jarvis ASR
+// ---------------------------------------------------------------------------------------
+$(document).on("click", "#video-btn", function (e) {
+    if (videoEnabled) {
+        if($(this).hasClass("btn-primary")) {
+            $("#video-btn").removeClass("btn-primary").addClass("btn-secondary");
+            $("#video-btn").tooltip('hide')
+                .attr('data-original-title', 'Video on')
+                .tooltip('show');         
+        }
+        setVideoEnabled(false);
+        videoEnabled = false;
+    } else {
+        if($(this).hasClass("btn-secondary")) {
+            $("#video-btn").removeClass("btn-secondary").addClass("btn-primary");               
+            $("#video-btn").tooltip('hide')
+                .attr('data-original-title', 'Video off')
+                .tooltip('show');         
+        }
+        setVideoEnabled(true);
+        videoEnabled = true;
+    }
 });
 
 // ---------------------------------------------------------------------------------------
