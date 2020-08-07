@@ -22,18 +22,28 @@ var peer;
 var peer_id;
 var username = 'User ' + id.toString();
 var peer_username;
-var conn;
+var peerConn;
+var peerCall;
 var localStream;
 var peerStream;
 var audioContext;
 var sampleRate;
 var jarvisRunning = false;
-var socket;
+var callActive = false;
+var muted = false;
+var socket = socketio.on('connect', function() {
+    console.log('Socket connected to speech server');
+});
 
 var scrollToBottomTime = 500;
 var displacy;
 var ents;
 var latencyTimer;
+
+// Tweaking toastr popup toasts to be more in line with the bootstrap theme
+// toastr.options = {
+//     toastClass: 'alert'
+// };
 
 // ---------------------------------------------------------------------------------------
 // Latency tracking
@@ -78,7 +88,6 @@ function startJarvisService() {
     document.getElementById('jarvis-btn').disabled = true;
     latencyTimer = new LatencyTimer();
 
-    console.log('Trying to start socket connection');
     if (socket == null) {
         socket = socketio.on('connect', function() {
             console.log('Connected to speech server');
@@ -138,8 +147,8 @@ function startJarvisService() {
             // TODO: check for error in result.annotations
             showAnnotatedTranscript(username, result.annotations, result.transcript);
             // Send the transcript to the peer to render
-            if (conn != undefined) {
-                conn.send({from: username, type: 'transcript', annotations: result.annotations, text: result.transcript});
+            if (peerConn != undefined) {
+                peerConn.send({from: username, type: 'transcript', annotations: result.annotations, text: result.transcript});
             }
             if (result.latencyIndex !== undefined) {
                 var latencyResult = latencyTimer.end(result.latencyIndex);
@@ -152,9 +161,10 @@ function startJarvisService() {
     document.getElementById('submit_text').removeAttribute('disabled');
     document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
     var connArea = document.getElementById('connection_status');
-    var jarvisDiv = document.createElement('div');
-    jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis is connected</strong></p>';
-    connArea.appendChild(jarvisDiv);
+    // var jarvisDiv = document.createElement('div');
+    // jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis is connected</strong></p>';
+    // connArea.appendChild(jarvisDiv);
+    toastr.success('Jarvis is connected.');
 
     socket.emit('get_supported_entities');
     socket.on('supported_entities', function(response) {
@@ -229,6 +239,13 @@ function onReceiveStream(stream, element_id) {
     video.srcObject = stream;
 }
 
+function clearStream(element_id) {
+    var video = document.getElementById(element_id);
+    video.pause();
+    video.srcObject = new MediaStream(); // replace the video element with an empty stream
+    video.load();
+}
+
 /**
  * Receive messages from the peer
  *
@@ -255,10 +272,45 @@ function handleMessage(data) {
     }
 }
 
+function setCallHandlers() {
+    peerCall.on('stream', function(stream) {
+        peerStream = stream;
+        if (!callActive) {
+            toastr.success('Call connected.');
+        }
+        callActive = true;
+        // Display the stream of the other user in the peer-camera video element
+        onReceiveStream(stream, 'peer-camera');
+    });
+
+    peerCall.on('error', function(error) { // TODO: improve peerjs error handling
+        bootbox.alert(error);
+        console.log(error);
+    });
+}
+
+function setDataConnHandlers() {
+    // Use the handleMessage to callback when a message comes in
+    peerConn.on('data', handleMessage);
+
+    // Handle when the call finishes
+    peerConn.on('close', function() {
+        // bootbox.alert('Call with ' + peer_username + ' has ended.');
+        toastr.info('Call with ' + peer_username + ' has ended.');
+        console.log('Peer data connection ended');
+        callActive = false;
+        clearStream('peer-camera');
+        $("#call").html('Call');
+    });
+}
+
 // ---------------------------------------------------------------------------------------
 // When the document is ready
 // ---------------------------------------------------------------------------------------
 $(document).ready(function () {
+    // Activate tooltips
+    $("body").tooltip({ selector: '[data-toggle=tooltip]' });
+
     // Start DisplaCy for the NER rendering
     displacy = new displaCyENT('http://localhost:8000', {})
 
@@ -289,6 +341,11 @@ $(document).ready(function () {
     // Show the ID that allows other user to connect to your session.
     peer.on('open', function () {
         document.getElementById("your_id").innerHTML = "Your ID: <strong>" + peer.id + "</strong>";
+
+        // Report my own ID to the server
+        if (socket) {
+            socket.emit('peerjs_id', peer.id);
+        }
     });
 
     // When someone connects to your session:
@@ -297,17 +354,15 @@ $(document).ready(function () {
     // as the peer of the user that requested the connection.
     // 2. Update global variables with received values
     peer.on('connection', function (connection) {
-        conn = connection;
+        peerConn = connection;
         peer_id = connection.peer;
-        setPeerUsername(conn.metadata.username);
+        setPeerUsername(peerConn.metadata.username);
         console.log("Received connection request from " + peer_username);
-
-        // Use the handleMessage to callback when a message comes in
-        conn.on('data', handleMessage);
+        setDataConnHandlers();
     });
 
     peer.on('error', function(err){
-        alert("An error occurred with peer: " + err);
+        bootbox.alert(err);
         console.error(err);
     });
 
@@ -315,27 +370,19 @@ $(document).ready(function () {
      * Handle the on receive call event
      */
     peer.on('call', function (call) {
-        var acceptsCall = confirm("Video call incoming, do you want to accept it ?");
-
-        if(acceptsCall) {
-            // Answer the call with your own video/audio stream
-            call.answer(localStream);
-            startJarvisService();
-
-            // Receive data
-            call.on('stream', function (stream) {
-                peerStream = stream;
-                // Display the stream of the other user in the peer-camera video element
-                onReceiveStream(stream, 'peer-camera');
-            });
-
-            // Handle when the call finishes
-            call.on('close', function(){
-                alert("The video call has finished");
-            });
-        } else {
-            console.log("Call denied !");
-        }
+        bootbox.confirm("Incoming video call. Accept?", function(acceptsCall) {
+            if(acceptsCall) {
+                // Answer the call with your own video/audio stream
+                peerCall = call;
+                peerCall.answer(localStream);
+                // callActive = true;
+                $("#call").html('End');
+                setCallHandlers();
+                startJarvisService();
+            } else {
+                console.log("Call denied !");
+            }
+        });
     });
 
     /**
@@ -351,13 +398,14 @@ $(document).ready(function () {
             onReceiveStream(stream, 'my-camera');
         },
         error: function(err){
-            alert("Cannot get access to your camera and microphone.");
+            bootbox.alert("Cannot get access to your camera and microphone.");
             console.error(err);
         }
     });
 
     // Allow us to launch Jarvis with only the local speaker
     document.getElementById('jarvis-btn').removeAttribute("disabled");
+
 });
 
 // ---------------------------------------------------------------------------------------
@@ -369,10 +417,44 @@ $(document).on("click", "#name_btn", function (e) {
     username = $('#name').val();
     console.log("username: " + username);
     document.getElementById("self_cam_label").innerHTML = username;
-    if (conn != undefined) {
-        conn.send({from: username, type: 'username'});
+    if (peerConn != undefined) {
+        peerConn.send({from: username, type: 'username'});
     }
 });
+
+function startCall() {
+    // Connect with the user
+    peer_id = document.getElementById("peer_id").value;
+    if (!peer_id) {
+        return false;
+    }
+
+    peerConn = peer.connect(peer_id, {
+        metadata: {
+            'username': username
+        }
+    });
+    setDataConnHandlers();
+    
+    // Call the peer
+    console.log('Calling peer ' + peer_id);
+    peerCall = peer.call(peer_id, localStream);
+    $("#call").html('End');
+    setCallHandlers();
+    setPeerUsername('User ' + peer_id.toString());
+    startJarvisService();
+}
+
+function endCall() {
+    callActive = false;
+
+    // Close the media and data connections with the peer
+    peerCall.close();
+    peerConn.close();
+
+    // $('#peer_id').val("");
+    $("#call").html('Call'); // set the call button back
+}
 
 // ---------------------------------------------------------------------------------------
 // Request a video call with another user
@@ -381,41 +463,56 @@ $(document).on("click", "#call", function (e) {
     // Prevent reload of page after submitting of form
     e.preventDefault();
 
-    // Connect with the user
-    peer_id = document.getElementById("peer_id").value;
-    if (peer_id) {
-        conn = peer.connect(peer_id, {
-            metadata: {
-                'username': username
-            }
-        });
-        conn.on('data', handleMessage);
+    if (!callActive) {
+        startCall();
     } else {
-        return false;
+        endCall();
     }
-
-    // Call the peer
-    console.log('Calling peer ' + peer_id);
-    var call = peer.call(peer_id, localStream);
-    setPeerUsername('User ' + peer_id.toString());
-    call.on('stream', function (stream) {
-        peerStream = stream;
-        onReceiveStream(stream, 'peer-camera');
-    });
-    startJarvisService();
 });
 
-/**
- * On clicking the Transcription button, start Jarvis
- */
+// ---------------------------------------------------------------------------------------
+// On clicking the Transcription button, start Jarvis
+// ---------------------------------------------------------------------------------------
 $(document).on("click", "#jarvis-btn", function (e) {
     // Send message to peer to also connect to Jarvis, then start my own connection
-    if (conn != undefined) {
-        conn.send({from: username, type: 'startJarvis'});
+    if (peerConn != undefined) {
+        peerConn.send({from: username, type: 'startJarvis'});
     }
     startJarvisService();
 });
 
+function setAudioEnabled(enabled) {
+    if (!localStream) return;
+    for (const track of localStream.getAudioTracks()) {
+        track.enabled = enabled;
+    }
+}
+
+// ---------------------------------------------------------------------------------------
+// On mute button, which should mute both call audio and Jarvis ASR
+// ---------------------------------------------------------------------------------------
+$(document).on("click", "#mute-btn", function (e) {
+    if (!muted) {
+        if($(this).hasClass("btn-primary")) {
+            $("#mute-btn").removeClass("btn-primary").addClass("btn-secondary");
+            $("#mute-btn").tooltip('hide')
+                .attr('data-original-title', 'Unmute')
+                .tooltip('show');         
+        }
+        setAudioEnabled(false);
+        muted = true;
+    } else {
+        if($(this).hasClass("btn-secondary")) {
+            $("#mute-btn").removeClass("btn-secondary").addClass("btn-primary");               
+            $("#mute-btn").tooltip('hide')
+                .attr('data-original-title', 'Mute')
+                .tooltip('show');         
+        }
+        setAudioEnabled(true);
+        muted = false;
+    }
+    
+});
 
 // ---------------------------------------------------------------------------------------
 // Click on text submit button

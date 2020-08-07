@@ -77,7 +77,7 @@ function setupServer() {
 
     // Listener, once the client connects to the server socket
     io.on('connect', (socket) => {
-        console.log(`Client connected [id=${socket.id}]`);
+        console.log('Client connected from %s', socket.handshake.address);
 
         // Initialize Jarvis
         console.log('Initializing Jarvis ASR');
@@ -121,8 +121,6 @@ function setupServer() {
         socket.on('nlp_request', (data) => {
             nlp.getJarvisNer(data.text)
             .then(function(nerResult) {
-                console.log('Emit of NLP request');
-                console.log(nerResult);
                 socket.emit('transcript', {
                     transcript: data.text,
                     is_final: true,
@@ -137,6 +135,11 @@ function setupServer() {
         // Get the list of supported entities
         socket.on('get_supported_entities', () => {
             socket.emit('supported_entities', process.env.JARVIS_NER_ENTITIES);
+        });
+
+        socket.on('peerjs_id', (peerjs_id) => {
+            socket.handshake.session.peerjs_id = peerjs_id;
+            console.log('Client at %s has PeerJS ID %s', socket.handshake.address, peerjs_id);
         });
     });
 };
