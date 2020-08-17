@@ -31,6 +31,7 @@ var sampleRate;
 var jarvisRunning = false;
 var callActive = false;
 var muted = false;
+var videoEnabled = true;
 var socket = socketio.on('connect', function() {
     console.log('Socket connected to speech server');
 });
@@ -39,11 +40,8 @@ var scrollToBottomTime = 500;
 var displacy;
 var ents;
 var latencyTimer;
-
-// Tweaking toastr popup toasts to be more in line with the bootstrap theme
-// toastr.options = {
-//     toastClass: 'alert'
-// };
+// var reconnectAttempts = 0;
+// var reconnectTimerId;
 
 // ---------------------------------------------------------------------------------------
 // Latency tracking
@@ -147,7 +145,7 @@ function startJarvisService() {
             // TODO: check for error in result.annotations
             showAnnotatedTranscript(username, result.annotations, result.transcript);
             // Send the transcript to the peer to render
-            if (peerConn != undefined) {
+            if (peerConn != undefined && callActive) {
                 peerConn.send({from: username, type: 'transcript', annotations: result.annotations, text: result.transcript});
             }
             if (result.latencyIndex !== undefined) {
@@ -161,9 +159,6 @@ function startJarvisService() {
     document.getElementById('submit_text').removeAttribute('disabled');
     document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
     var connArea = document.getElementById('connection_status');
-    // var jarvisDiv = document.createElement('div');
-    // jarvisDiv.innerHTML = '<p class=\"text-info\"><strong>Jarvis is connected</strong></p>';
-    // connArea.appendChild(jarvisDiv);
     toastr.success('Jarvis is connected.');
 
     socket.emit('get_supported_entities');
@@ -205,7 +200,8 @@ function showAnnotatedTranscript(speaker, annotations, text) {
     $("#transcription_area").append(nameContainer);
     $("#transcription_area").append(textContainer);
     $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
-    $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
+    // Scroll the full page to the bottom?
+    // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
 }
 
 /**
@@ -214,7 +210,7 @@ function showAnnotatedTranscript(speaker, annotations, text) {
  * @param {Object} callbacks
  */
 function requestLocalVideo(callbacks) {
-//    // Monkeypatch for crossbrowser getUserMedia
+   // Monkeypatch for crossbrowser getUserMedia
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
     // Request audio and video
@@ -295,7 +291,6 @@ function setDataConnHandlers() {
 
     // Handle when the call finishes
     peerConn.on('close', function() {
-        // bootbox.alert('Call with ' + peer_username + ' has ended.');
         toastr.info('Call with ' + peer_username + ' has ended.');
         console.log('Peer data connection ended');
         callActive = false;
@@ -339,7 +334,7 @@ $(document).ready(function () {
 
     // Once the initialization succeeds:
     // Show the ID that allows other user to connect to your session.
-    peer.on('open', function () {
+    peer.on('open', function() {
         document.getElementById("your_id").innerHTML = "Your ID: <strong>" + peer.id + "</strong>";
 
         // Report my own ID to the server
@@ -348,12 +343,7 @@ $(document).ready(function () {
         }
     });
 
-    // When someone connects to your session:
-    //
-    // 1. Hide the peer_id field of the connection form and set automatically its value
-    // as the peer of the user that requested the connection.
-    // 2. Update global variables with received values
-    peer.on('connection', function (connection) {
+    peer.on('connection', function(connection) {
         peerConn = connection;
         peer_id = connection.peer;
         setPeerUsername(peerConn.metadata.username);
@@ -362,20 +352,19 @@ $(document).ready(function () {
     });
 
     peer.on('error', function(err){
-        bootbox.alert(err);
-        console.error(err);
+        bootbox.alert(err.message);
+        console.error(err.message);
     });
 
     /**
      * Handle the on receive call event
      */
-    peer.on('call', function (call) {
+    peer.on('call', function(call) {
         bootbox.confirm("Incoming video call. Accept?", function(acceptsCall) {
             if(acceptsCall) {
                 // Answer the call with your own video/audio stream
                 peerCall = call;
                 peerCall.answer(localStream);
-                // callActive = true;
                 $("#call").html('End');
                 setCallHandlers();
                 startJarvisService();
@@ -488,6 +477,13 @@ function setAudioEnabled(enabled) {
     }
 }
 
+function setVideoEnabled(enabled) {
+    if (!localStream) return;
+    for (const track of localStream.getVideoTracks()) {
+        track.enabled = enabled;
+    }
+}
+
 // ---------------------------------------------------------------------------------------
 // On mute button, which should mute both call audio and Jarvis ASR
 // ---------------------------------------------------------------------------------------
@@ -511,7 +507,31 @@ $(document).on("click", "#mute-btn", function (e) {
         setAudioEnabled(true);
         muted = false;
     }
-    
+});
+
+// ---------------------------------------------------------------------------------------
+// On mute button, which should mute both call audio and Jarvis ASR
+// ---------------------------------------------------------------------------------------
+$(document).on("click", "#video-btn", function (e) {
+    if (videoEnabled) {
+        if($(this).hasClass("btn-primary")) {
+            $("#video-btn").removeClass("btn-primary").addClass("btn-secondary");
+            $("#video-btn").tooltip('hide')
+                .attr('data-original-title', 'Video on')
+                .tooltip('show');         
+        }
+        setVideoEnabled(false);
+        videoEnabled = false;
+    } else {
+        if($(this).hasClass("btn-secondary")) {
+            $("#video-btn").removeClass("btn-secondary").addClass("btn-primary");               
+            $("#video-btn").tooltip('hide')
+                .attr('data-original-title', 'Video off')
+                .tooltip('show');         
+        }
+        setVideoEnabled(true);
+        videoEnabled = true;
+    }
 });
 
 // ---------------------------------------------------------------------------------------

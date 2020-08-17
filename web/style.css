@@ -15,6 +15,14 @@
     width: 15px;
 }
 
+.icon-video-off{
+    background-image : url(video_off_white.png);
+    background-size: cover;
+    display: inline-block;
+    height: 15px;
+    width: 15px;
+}
+
 .btn-group-xs > .btn, .btn-xs {
     padding: .25rem .4rem;
     font-size: .875rem;

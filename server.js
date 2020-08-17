@@ -31,7 +31,7 @@ const session = require('express-session')({
     }
 });
 const uuid = require('uuid');
-const ss = require('socket.io-stream');
+// const ss = require('socket.io-stream');
 const { ExpressPeerServer } = require('peer');
 const sharedsession = require("express-socket.io-session");
 
@@ -140,6 +140,10 @@ function setupServer() {
         socket.on('peerjs_id', (peerjs_id) => {
             socket.handshake.session.peerjs_id = peerjs_id;
             console.log('Client at %s has PeerJS ID %s', socket.handshake.address, peerjs_id);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Client at %s disconnected. Reason: ', socket.handshake.address, reason);
         });
     });
 };
