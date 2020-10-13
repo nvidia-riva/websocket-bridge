@@ -40,8 +40,6 @@ var scrollToBottomTime = 500;
 var displacy;
 var ents;
 var latencyTimer;
-// var reconnectAttempts = 0;
-// var reconnectTimerId;
 
 // ---------------------------------------------------------------------------------------
 // Latency tracking
@@ -200,8 +198,6 @@ function showAnnotatedTranscript(speaker, annotations, text) {
     $("#transcription_area").append(nameContainer);
     $("#transcription_area").append(textContainer);
     $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
-    // Scroll the full page to the bottom?
-    // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
 }
 
 /**
@@ -441,7 +437,6 @@ function endCall() {
     peerCall.close();
     peerConn.close();
 
-    // $('#peer_id').val("");
     $("#call").html('Call'); // set the call button back
 }
 
