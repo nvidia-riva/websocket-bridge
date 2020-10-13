@@ -61,6 +61,9 @@ function setupServer() {
 
     // start peer-js server at https://ip:port/peerjs
     // for negotiating peer-to-peer connections for the video chat
+    // TODO: this appears to cause port conflicts. It works, but causes socket-io to
+    // fall back to HTTPS long-polling instead of using a websocket for the audio.
+    // Need to separate the peer-js server from the Express server.
     peerServer = ExpressPeerServer(server, {
         port: process.env.PEERJS_PORT,
         sslkey: sslkey,
