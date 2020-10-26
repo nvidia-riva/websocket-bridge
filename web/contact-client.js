@@ -232,8 +232,6 @@ function showAnnotatedTranscript(speaker, annotations, text) {
 
     // Scroll the full page to the bottom?
     // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
-
-    
 }
 
 /**
@@ -472,7 +470,6 @@ function endCall() {
     peerCall.close();
     peerConn.close();
 
-    // $('#peer_id').val("");
     $("#call").html('Call'); // set the call button back
 }
 
