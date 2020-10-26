@@ -31,8 +31,7 @@ const session = require('express-session')({
     }
 });
 const uuid = require('uuid');
-// const ss = require('socket.io-stream');
-const { ExpressPeerServer } = require('peer');
+const { PeerServer } = require('peer');
 const sharedsession = require("express-socket.io-session");
 
 const ASRPipe = require('./modules/asr');
@@ -44,10 +43,13 @@ var server, peerServer;
 var sslkey = './certificates/key.pem';
 var sslcert = './certificates/cert.pem';
 
+
 /**
  * Set up Express Server with CORS and SocketIO
  */
 function setupServer() {
+    const ignoreRegex = RegExp(/^(.)\1{0,}(\.|\?)?\s*$/, 'i');
+
     // set up Express
     app.use(cors());
     app.use(express.static('web')); // ./web is the public dir for js, css, etc.
@@ -62,12 +64,14 @@ function setupServer() {
 
     // start peer-js server at https://ip:port/peerjs
     // for negotiating peer-to-peer connections for the video chat
-    peerServer = ExpressPeerServer(server, {
-        port: process.env.PEERJS_PORT,
-        sslkey: sslkey,
-        sslcert: sslcert
+    peerServer = PeerServer({
+        port: parseInt(port) + 1,
+        ssl: {
+          key: fs.readFileSync(sslkey),
+          cert: fs.readFileSync(sslcert)
+        },
+        path: '/peerjs'
     });
-    app.use('/peerjs', peerServer);
 
     io = socketIo(server);
     io.use(sharedsession(session, {autoSave:true}));
@@ -96,6 +100,11 @@ function setupServer() {
                 process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
             }
             socket.handshake.session.lastLineLength = result.transcript.length;
+
+            // Don't return the short "Oo?" and "A?" kind of results
+            if (ignoreRegex.test(result.transcript)) {
+                return;
+            }
 
             // Final transcripts also get sent to NLP before returning
             if (result.is_final) {
@@ -132,9 +141,9 @@ function setupServer() {
             });
         });
 
-        // Get the list of supported entities
-        socket.on('get_supported_entities', () => {
-            socket.emit('supported_entities', process.env.JARVIS_NER_ENTITIES);
+        // Get NLP configuration
+        socket.on('get_nlp_config', () => {
+            socket.emit('nlp_config', {ner_entities: process.env.JARVIS_NER_ENTITIES, concept_map: process.env.CONCEPT_MAP});
         });
 
         socket.on('peerjs_id', (peerjs_id) => {
@@ -147,5 +156,12 @@ function setupServer() {
         });
     });
 };
+
+process.on('SIGINT', function() {
+    console.log("Caught interrupt signal, cleaning up");
+
+    nlp.cleanUp();
+    process.exit();
+});
 
 setupServer();

@@ -4,7 +4,7 @@
 
 [data-entity] {
   padding: 0.25em 0.35em;
-  margin: 0 0.25em;
+  margin: 1px 1px 1px 1px;
   line-height: 1;
   display: inline-block;
   border-radius: 0.25em;
@@ -23,25 +23,28 @@
   margin: 0 0 0.1rem 0.5rem;
 }
 [data-entity][data-entity=problem] {
-  background: rgba(214, 203, 211, 0.2);
-  border-color: #d6cbd3;
+  background: rgba(118, 185, 0, 0.2);
+  border-color: #76b900;
 }
 [data-entity][data-entity=problem]:after {
-  background: #d6cbd3;
+  background: #76b900;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=test] {
-  background: rgba(236, 161, 166, 0.2);
-  border-color: #eca1a6;
+  background: rgba(0, 133, 100, 0.2);
+  border-color: #008564;
 }
 [data-entity][data-entity=test]:after {
-  background: #eca1a6;
+  background: #008564;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=treatment] {
-  background: rgba(189, 206, 190, 0.2);
-  border-color: #bdcebe;
+  background: rgba(93, 22, 130, 0.2);
+  border-color: #5d1682;
 }
 [data-entity][data-entity=treatment]:after {
-  background: #bdcebe;
+  background: #5d1682;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=person] {
   background: rgba(166, 226, 45, 0.2);
@@ -49,6 +52,7 @@
 }
 [data-entity][data-entity=person]:after {
   background: #a6e22d;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=per] {
   background: rgba(166, 226, 45, 0.2);
@@ -56,6 +60,7 @@
 }
 [data-entity][data-entity=per]:after {
   background: #a6e22d;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=norp] {
   background: rgba(224, 0, 132, 0.2);
@@ -63,6 +68,7 @@
 }
 [data-entity][data-entity=norp]:after {
   background: #e00084;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=facility] {
   background: rgba(67, 198, 252, 0.2);
@@ -70,6 +76,7 @@
 }
 [data-entity][data-entity=facility]:after {
   background: #43c6fc;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=org] {
   background: rgba(67, 198, 252, 0.2);
@@ -77,6 +84,7 @@
 }
 [data-entity][data-entity=org]:after {
   background: #43c6fc;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=gpe] {
   background: rgba(253, 151, 32, 0.2);
@@ -84,6 +92,7 @@
 }
 [data-entity][data-entity=gpe]:after {
   background: #fd9720;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=loc] {
   background: rgba(253, 151, 32, 0.2);
@@ -91,6 +100,7 @@
 }
 [data-entity][data-entity=loc]:after {
   background: #fd9720;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=product] {
   background: rgba(142, 125, 255, 0.2);
@@ -98,6 +108,7 @@
 }
 [data-entity][data-entity=product]:after {
   background: #8e7dff;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=event] {
   background: rgba(255, 204, 0, 0.2);
@@ -105,6 +116,7 @@
 }
 [data-entity][data-entity=event]:after {
   background: #ffcc00;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=work_of_art] {
   background: rgba(255, 204, 0, 0.2);
@@ -112,6 +124,7 @@
 }
 [data-entity][data-entity=work_of_art]:after {
   background: #ffcc00;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=language] {
   background: rgba(255, 204, 0, 0.2);
@@ -119,6 +132,7 @@
 }
 [data-entity][data-entity=language]:after {
   background: #ffcc00;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=date] {
   background: rgba(47, 187, 171, 0.2);
@@ -126,6 +140,7 @@
 }
 [data-entity][data-entity=date]:after {
   background: #2fbbab;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=time] {
   background: rgba(47, 187, 171, 0.2);
@@ -133,6 +148,7 @@
 }
 [data-entity][data-entity=time]:after {
   background: #2fbbab;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=percent] {
   background: rgba(153, 153, 153, 0.2);
@@ -140,6 +156,7 @@
 }
 [data-entity][data-entity=percent]:after {
   background: #999;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=money] {
   background: rgba(153, 153, 153, 0.2);
@@ -147,6 +164,7 @@
 }
 [data-entity][data-entity=money]:after {
   background: #999;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=quantity] {
   background: rgba(153, 153, 153, 0.2);
@@ -154,6 +172,7 @@
 }
 [data-entity][data-entity=quantity]:after {
   background: #999;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=ordinal] {
   background: rgba(153, 153, 153, 0.2);
@@ -161,6 +180,7 @@
 }
 [data-entity][data-entity=ordinal]:after {
   background: #999;
+  color: #f5f5f5;
 }
 [data-entity][data-entity=cardinal] {
   background: rgba(153, 153, 153, 0.2);
@@ -168,6 +188,7 @@
 }
 [data-entity][data-entity=cardinal]:after {
   background: #999;
+  color: #f5f5f5;
 }
 
 /*# sourceMappingURL=displacy-ent.css.map */

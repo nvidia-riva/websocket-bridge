@@ -1,12 +1,67 @@
-.scroll {
-    max-height: 450px;
+:root {
+    --nv-green: #76b900;
+    --nv-green-darken: #6ead00;
+    --emerald: #008564;
+    --emerald-darken: #017c5d;
+    --amethyst: #5d1682;
+    --amethyst-darken: #4c116b;
+    --cpu-blue: #0071c5;
+    --cpu-blue-darken: #0062ad;
+    --garnet: #890c58;
+    --garnet-darken: #7a0c4e;
+    --fluorite: #fac200;
+    --fluorite-darken: #e4b301;
+    --dark-gray: #5e5e5e;
+    --primary: #76b900;
+    --secondary: #008564;
+    --success: #5d1682;
+    --info: #0071c5;
+    --warning: #fac200;
+    --danger: #890c58;
+}
+@font-face {
+    font-family: "DINWebPro-Regular";
+    src: url("fonts/DINWebPro.eot");
+    src: url("fonts/DINWebPro.woff") format("woff");
+}
+@font-face {
+    font-family: "DINWebPro-Medium";
+    src: url("fonts/DINWebPro-Medium.eot");
+    src: url("fonts/DINWebPro-Medium.woff") format("woff");
+}
+@font-face {
+    font-family: "D-DIN-Web-Regular";
+    src: url("fonts/d-din-webfont.woff") format("woff");
+}
+@font-face {
+    font-family: "D-DIN-Web-Bold";
+    src: url("fonts/d-din-bold-webfont.woff");
+}
+body {
+    font-family: DINWebPro-Regular, D-DIN-Web-Regular, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.btn {
+    font-family: DINWebPro-Regular, D-DIN-Web-Regular, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+h1 {
+    font-family: DINWebPro-Medium, D-DIN-Web-Bold, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.card-header {
+    font-family: DINWebPro-Medium, D-DIN-Web-Bold, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+mark, .mark {
+    display: inline;
+}
+.scrollable {
+    min-height: 200px;
+    max-height: 400px;
     overflow-y: auto;
+    background-color: #f7f7f7
 }
 .center {
     margin: 0 auto;
     width: 400px;
 }
-
 .icon-mute{
     background-image : url(mic_mute_white.png);
     background-size: cover;
@@ -29,7 +84,6 @@
     line-height: .5;
     border-radius: .2rem;
 }
-
 .toast-success {
     background-color: var(--primary);
 }
@@ -42,3 +96,122 @@
 .toast-warning {
     background-color: var(--warning);
 }
+.tooltip {
+    pointer-events: none;
+    font-family: DINWebPro-Regular, D-DIN-Web-Regular, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.tooltip-inner {
+    text-align: left;
+}
+.tooltip-table table {
+    color: #fff;
+}
+.speaker-self {
+    color: var(--nv-green);
+}
+.speaker-other {
+    color: var(--dark-gray);
+}
+.btn-primary {
+    background-color: var(--nv-green);
+    border-color: var(--nv-green);
+ }
+.btn-primary:hover {
+    background-color: var(--nv-green-darken);
+    border-color: var(--nv-green-darken);
+}
+.btn-primary:focus, .btn-primary.focus {
+    background-color: var(--nv-green-darken);
+    border-color: var(--nv-green-darken);
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(147, 173, 102, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(147, 173, 102, 0.5);
+}
+.btn-primary.disabled, .btn-primary:disabled {
+    background-color: var(--nv-green);
+    border-color: var(--nv-green);
+}
+.btn-primary:not(:disabled):not(.disabled):active, .btn-primary:not(:disabled):not(.disabled).active,
+.show > .btn-primary.dropdown-toggle {
+    background-color: var(--nv-green-darken);
+    border-color: var(--nv-green-darken);
+}
+.btn-primary:not(:disabled):not(.disabled):active:focus, .btn-primary:not(:disabled):not(.disabled).active:focus,
+.show > .btn-primary.dropdown-toggle:focus {
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(147, 173, 102, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(147, 173, 102, 0.5);
+}
+
+.btn-secondary {
+    background-color: var(--emerald);
+    border-color: var(--emerald);
+ }
+.btn-secondary:hover {
+    background-color: var(--emerald-darken);
+    border-color: var(--emerald-darken);
+}
+.btn-secondary:focus, .btn-secondary.focus {
+    background-color: var(--emerald-darken);
+    border-color: var(--emerald-darken);
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+}
+.btn-secondary.disabled, .btn-secondary:disabled {
+    background-color: var(--emerald);
+    border-color: var(--emerald);
+}
+.btn-secondary:not(:disabled):not(.disabled):active, .btn-secondary:not(:disabled):not(.disabled).active,
+.show > .btn-secondary.dropdown-toggle {
+    background-color: var(--emerald-darken);
+    border-color: var(--emerald-darken);
+}
+.btn-secondary:not(:disabled):not(.disabled):active:focus, .btn-secondary:not(:disabled):not(.disabled).active:focus,
+.show > .btn-secondary.dropdown-toggle:focus {
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+}
+
+.btn-danger {
+    background-color: var(--garnet);
+    border-color: var(--garnet);
+ }
+.btn-danger:hover {
+    background-color: var(--garnet-darken);
+    border-color: var(--garnet-darken);
+}
+.btn-danger:focus, .btn-danger.focus {
+    background-color: var(--garnet-darken);
+    border-color: var(--garnet-darken);
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(84,128,117, 0.5);
+}
+.btn-danger.disabled, .btn-danger:disabled {
+    background-color: var(--garnet);
+    border-color: var(--garnet);
+}
+.btn-danger:not(:disabled):not(.disabled):active, .btn-danger:not(:disabled):not(.disabled).active,
+.show > .btn-danger.dropdown-toggle {
+    background-color: var(--garnet-darken);
+    border-color: var(--garnet-darken);
+}
+.btn-danger:not(:disabled):not(.disabled):active:focus, .btn-danger:not(:disabled):not(.disabled).active:focus,
+.show > .btn-danger.dropdown-toggle:focus {
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(138, 86, 117, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(138, 86, 117, 0.5);
+}
+.form-control:focus {
+    color: #5a5a5a;
+    background-color: #fff;
+    border-color: #d0eae2;
+    outline: 0;
+    -webkit-box-shadow: 0 0 0 0.2rem rgba(138, 86, 117, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(138, 86, 117, 0.5);
+}
+
+/* below are overrides for dark mode, temporary */
+/* .card {
+    background-color: black;
+    color: whitesmoke;
+}
+.mark {
+    color: whitesmoke;
+} */

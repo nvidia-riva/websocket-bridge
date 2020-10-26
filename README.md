@@ -48,6 +48,31 @@ Jarvis Contact uses environment variables to manage its configuration parameters
 
 Depending on your server environment, you will likely also need to open two ports on the server (by default, ports 8009 and 9000). These ports are for the main entry point to the web application, and for the [PeerJS server](https://github.com/peers/peerjs-server) which helps to negotiate the peer-to-peer chat connections. You may also need to set up port forwarding for these in your router, if applicable.
 
+### Optional UMLS concept mapping
+
+The code base includes in-progress functionality for healthcare applications, to link named entities with concepts in the [Unified Medical Language System](https://uts.nlm.nih.gov/home.html) (UMLS), a large medical ontology. Note that this feature is in development and thus doesn't work all that well just yet.
+
+The feature relies on two external services: a copy of UMLS, and a running instance of quickUMLS, which does a lexical similarity search. Installation requires a few extra steps that we expect to simplify before this feature is released to the wild. We are using Hoo Chang Shin's local wrap of [UMLS and tools](https://gitlab-master.nvidia.com/hshin/umls-mapper).
+
+Pull the UMLS docker container from NGC, then run it:
+
+```
+$ docker pull nvcr.io/ea-jarvis-megatron/umls-mapper
+$ docker run --ipc=host --network host -p 4645:4645 -t nvcr.io/ea-jarvis-megatron/umls-mapper
+```
+
+Install quickUMLS:
+
+```
+$ pip install quickumls
+```
+
+Now, in the Jarvis Contact config file `env.txt`, uncomment the line `CONCEPT_MAP="UMLS"`. Note that this also won't do much unless you are running an NER model that recognizes medical named entities.
+
+You can go ahead and start the app server, as below. If this is working, then when the NER model recognizes a term like `metformin`, you can mouse over the entity in the transcript to see the linked UMLS concept(s).
+
+![concept-mapping](doc/concept-map.png "Concept mapping with UMLS")
+
 ### Using the docker container
 
 <TO DO, once the Jarvis Client container is ready.>
