@@ -27,7 +27,6 @@
     "peer": "^0.5.3",
     "python-bridge": "^1.1.0",
     "redis": "^3.0.2",
-    "socket.io": "^2.3.0",
-    "socket.io-stream": "^0.9.1"
+    "socket.io": "^2.3.0"
   }
 }

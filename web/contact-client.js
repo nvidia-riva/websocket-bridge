@@ -15,7 +15,6 @@
  */
 
 const id = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-// const socketio = io({transports: ['websocket'], secure: true});
 const socketio = io();
 const resampleWorker = './resampler.js';
 
@@ -232,6 +231,8 @@ function showAnnotatedTranscript(speaker, annotations, text) {
 
     // Scroll the full page to the bottom?
     // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
+
+    
 }
 
 /**
@@ -349,6 +350,7 @@ $(document).ready(function () {
         port: parseInt(location.port) + 1,
         path: '/peerjs',
         debug: 3,
+        secure: true,
         config: {
             'iceServers': [
                 { url: 'stun:stun1.l.google.com:19302' },
@@ -470,6 +472,7 @@ function endCall() {
     peerCall.close();
     peerConn.close();
 
+    // $('#peer_id').val("");
     $("#call").html('Call'); // set the call button back
 }
 

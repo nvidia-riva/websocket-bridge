@@ -89,7 +89,7 @@ This will start the Node.js application, and will start listening for connection
 
 ## Using the service
 
-Load the URL in a browser (Chrome or Firefox work well) on a computer with a webcam and microphone. For best ASR results, a headset is recommended.
+Load the URL in a browser (Chrome works well; Firefox has issues with some network configurations) on a computer with a webcam and microphone. For best ASR results, a headset is recommended.
 
 For example, if you're accessing the service from a computer within the local network, and it's hosted on a machine with the IP 192.168.2.10, then the URL would be https://192.168.2.10:8009/.
 

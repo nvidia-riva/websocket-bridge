@@ -17,7 +17,6 @@
 require('dotenv').config({path: 'env.txt'});
 
 const socketIo = require('socket.io');
-const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const cors = require('cors');
@@ -32,6 +31,7 @@ const session = require('express-session')({
 });
 const uuid = require('uuid');
 const { PeerServer } = require('peer');
+var peerServer;
 const sharedsession = require("express-socket.io-session");
 
 const ASRPipe = require('./modules/asr');
@@ -39,7 +39,7 @@ const nlp = require('./modules/nlp');
 
 const app = express();
 const port = ( process.env.PORT );
-var server, peerServer;
+var server;
 var sslkey = './certificates/key.pem';
 var sslcert = './certificates/cert.pem';
 
@@ -62,8 +62,12 @@ function setupServer() {
         cert: fs.readFileSync(sslcert)
     }, app);
 
-    // start peer-js server at https://ip:port/peerjs
-    // for negotiating peer-to-peer connections for the video chat
+    // Start peer-js server at https://ip:port/peerjs
+    // for negotiating peer-to-peer connections for the video chat.
+    // This has problems in Firefox for some network configurations,
+    // but appears to be more stable in Chrome.
+    // Either way, this does not affect the websocket connection used for
+    // Jarvis, you just won't be able to call a peer.
     peerServer = PeerServer({
         port: parseInt(port) + 1,
         ssl: {
