@@ -191,4 +191,13 @@
   color: #f5f5f5;
 }
 
+[negation] {
+  background: #f7f7f7 !important;
+}
+[negation]:after {
+  content: attr(data-entity) " | " attr(negation) !important;
+  background: #8c8c8c !important;
+  color: #f5f5f5 !important;
+}
+
 /*# sourceMappingURL=displacy-ent.css.map */

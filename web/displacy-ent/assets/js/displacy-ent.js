@@ -98,6 +98,7 @@ class displaCyENT {
             if(ents == undefined || ents.includes(type.toLowerCase())) {
                 var mark = document.createElement('mark');
                 mark.setAttribute('data-entity', type.toLowerCase());
+                // mark.setAttribute('negation', 'absent');
                 mark.appendChild(document.createTextNode(entity));
                 if (concepts != undefined && concepts.length > 0) {
                     var span = conceptTooltip(concepts);

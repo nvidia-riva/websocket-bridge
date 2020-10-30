@@ -36,6 +36,12 @@ $entities: ( problem: #76b900, test: #008564, treatment: #5d1682, person: #a6e22
             &:after
                 background: $color
                 color: #f5f5f5
-
             // &[data-entity="#{$entity}"] ~ &[data-entity="#{$entity}"]:after
                 display: none
+    
+[negation]
+    background: #f7f7f7 !important
+    &:after
+        content: attr(data-entity) " | " attr(negation) !important
+        background: #8c8c8c !important
+        color: #f5f5f5 !important
