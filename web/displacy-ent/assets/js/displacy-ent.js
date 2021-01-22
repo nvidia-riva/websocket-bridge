@@ -45,8 +45,7 @@ class displaCyENT {
         xhr.send(JSON.stringify({ text, model }));
     }
 
-    render(text, spans, ents) {
-        this.container.innerHTML = '';
+    render(container, text, spans, ents = null) {
         let offset = 0;
 
         spans.forEach(({ type, start, end }) => {
@@ -54,27 +53,27 @@ class displaCyENT {
             const fragments = text.slice(offset, start).split('\n');
 
             fragments.forEach((fragment, i) => {
-                this.container.appendChild(document.createTextNode(fragment));
-                if(fragments.length > 1 && i != fragments.length - 1) this.container.appendChild(document.createElement('br'));
+                container.appendChild(document.createTextNode(fragment));
+                if(fragments.length > 1 && i != fragments.length - 1) container.appendChild(document.createElement('br'));
             });
 
-            if(ents.includes(type.toLowerCase())) {
+            if(ents == undefined || ents.includes(type.toLowerCase())) {
                 const mark = document.createElement('mark');
                 mark.setAttribute('data-entity', type.toLowerCase());
                 mark.appendChild(document.createTextNode(entity));
-                this.container.appendChild(mark);
+                container.appendChild(mark);
             }
 
             else {
-                this.container.appendChild(document.createTextNode(entity));
+                container.appendChild(document.createTextNode(entity));
             }
 
             offset = end;
         });
 
-        this.container.appendChild(document.createTextNode(text.slice(offset, text.length)));
+        container.appendChild(document.createTextNode(text.slice(offset, text.length)));
 
-        console.log(`%c💥  HTML markup\n%c<div class="entities">${this.container.innerHTML}</div>`, 'font: bold 16px/2 arial, sans-serif', 'font: 13px/1.5 Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace');
+        console.log(`%c💥  HTML markup\n%c<div class="entities">${container.innerHTML}</div>`, 'font: bold 16px/2 arial, sans-serif', 'font: 13px/1.5 Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace');
 
         if(typeof this.onRender === 'function') this.onRender();
     }
