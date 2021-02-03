@@ -2,13 +2,14 @@
 
 Jarvis Contact is a web-based demonstration app for contact center applications, combining peer-to-peer video chat with streaming automatic speech recognition (ASR) and natural language processing (NLP). It is a lightweight Node.js application, backed by robust NVIDIA Jarvis AI Services.
 
-![contact-screenshot](doc/contact-screenshot.png "Jarvis Contact")
+Please find more information about the Jarvis Contact application, and how to run it, in the [Jarvis documentation](http://docs.jarvis-ai.nvidia.com/latest/samples/callcenter.html).
 
-Users can chat using a direct, peer-to-peer WebRTC-based video connection. In the background, each user's web client sends a separate audio stream to the Jarvis Contact server. The server makes a streaming gRPC call to hosted Jarvis AI Services, which return an ongoing stream of ASR transcripts. This stream of transcripts is handed back to the speaker's web client, who can see how the in-progress results may change as they speak.
+## License
 
-When ASR results are marked as "final" (typically during short pauses in speech), the server hands the resulting transcript over to the NLP service for named entity recognition (NER). If Jarvis is configured to use a general-domain NER model, the service will recognize entities like the name of a *person*, *location*, or *organization*. Jarvis can also be deployed with an NER model fine-tuned by NeMo for a specific domain. In this case, a model tuned on biomedical or clinical language might recognize entities such as *problem*, *test*, or *treatment*.
+[End User License Agreement](https://developer.download.nvidia.com/licenses/Jarvis_Pre-Release_Evaluation_License_23Jan2020.pdf) is included with the product. Licenses are also available along with the model application zip file. By pulling and using the Jarvis SDK container, downloading models, or using the sample applications, you accept the terms and conditions of these licenses.
 
-Once the NER results are complete, the Jarvis Contact server returns the final transcript, along with its NER annotation, back to the web client, which exchanges transcripts with the other user for an ongoing, annotated transcript of the conversation.
+
+## Additional documentation to be merged with main Jarvis docs above
 
 We hope this application offers a launching pad for your own development. One possibility would be to use the transcripts and tagged entities for downstream analytics and visualization. We encourage you to experiment, and would love to hear about what you build.
 
