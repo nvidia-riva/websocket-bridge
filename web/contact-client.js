@@ -40,8 +40,6 @@ var scrollToBottomTime = 500;
 var displacy;
 var ents;
 var latencyTimer;
-// var reconnectAttempts = 0;
-// var reconnectTimerId;
 
 // ---------------------------------------------------------------------------------------
 // Latency tracking
@@ -161,11 +159,11 @@ function startJarvisService() {
     var connArea = document.getElementById('connection_status');
     toastr.success('Jarvis is connected.');
 
-    socket.emit('get_supported_entities');
-    socket.on('supported_entities', function(response) {
+    socket.emit('get_nlp_config');
+    socket.on('nlp_config', function(response) {
         var entityHeader, entityDiv, ner;
-        ents = response.split(',');
-        console.log('Supported entities: ' + response);
+        ents = response.ner_entities.split(',');
+        console.log('Supported entities: ' + response.ner_entities);
         // Render a legend from the entity list
         entityHeader = document.createElement('div');
         entityHeader.innerHTML = '<p class=\"mb-1\">Entities being tagged:</p>';
@@ -176,7 +174,30 @@ function startJarvisService() {
         });
         displacy.render(entityDiv, '', ner, ents);
         connArea.append(entityDiv);
+
+        // // If we have concept mapping enabled, create a card for the summary table
+        // if (response.concept_map != undefined) {
+        //     addConceptSummary();
+        // }
     });
+}
+
+// ---------------------------------------------------------------------------------------
+// Inserts a card for a summary table of mapped concepts in the conversation
+// ---------------------------------------------------------------------------------------
+function addConceptSummary() {
+    var conceptDiv = document.createElement('div');
+    var transCol = document.getElementById('transcription_col');
+    var parent = transCol.parentNode;
+    conceptDiv.setAttribute('class', 'col-sm-4');
+
+    var conceptCard = document.createElement('div');
+    conceptCard.setAttribute('class', 'card');
+    conceptArea.appendChild(conceptCard);
+    parent.insertBefore(conceptArea, transCol);
+
+
+    conceptDiv.innerHTML = '<div '
 }
 
 // ---------------------------------------------------------------------------------------
@@ -188,20 +209,30 @@ function showAnnotatedTranscript(speaker, annotations, text) {
         return;
 
     var nameContainer = document.createElement('div');
-    var textContainer = document.createElement('div');
+    // var textContainer = document.createElement('div');
+    var textContainer = document.createElement('p');
     if (speaker == username) {
         nameContainer.setAttribute('class', 'd-flex justify-content-end');
-        textContainer.setAttribute('class', 'row justify-content-end mx-0');
+        nameContainer.innerHTML = "<p class=\"speaker-self mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
+        // textContainer.setAttribute('class', 'row justify-content-end mx-0');
+        textContainer.setAttribute('align', 'right');
+    } else {
+        nameContainer.innerHTML = "<p class=\"speaker-other mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
     }
 
-    nameContainer.innerHTML = "<p class=\"text-info mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
     displacy.render(textContainer, text, annotations.ner, annotations.ents);
 
     $("#transcription_area").append(nameContainer);
     $("#transcription_area").append(textContainer);
     $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
+
+    // Activate tooltips
+    $("#transcription_area").tooltip({ selector: '[data-toggle=tooltip]' });
+
     // Scroll the full page to the bottom?
     // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
+
+    
 }
 
 /**
@@ -316,7 +347,7 @@ $(document).ready(function () {
      */
     peer = new Peer(id, {
         host: document.domain,
-        port: location.port,
+        port: parseInt(location.port) + 1,
         path: '/peerjs',
         debug: 3,
         secure: true,
@@ -490,7 +521,7 @@ function setVideoEnabled(enabled) {
 $(document).on("click", "#mute-btn", function (e) {
     if (!muted) {
         if($(this).hasClass("btn-primary")) {
-            $("#mute-btn").removeClass("btn-primary").addClass("btn-secondary");
+            $("#mute-btn").removeClass("btn-primary").addClass("btn-danger");
             $("#mute-btn").tooltip('hide')
                 .attr('data-original-title', 'Unmute')
                 .tooltip('show');         
@@ -498,8 +529,8 @@ $(document).on("click", "#mute-btn", function (e) {
         setAudioEnabled(false);
         muted = true;
     } else {
-        if($(this).hasClass("btn-secondary")) {
-            $("#mute-btn").removeClass("btn-secondary").addClass("btn-primary");               
+        if($(this).hasClass("btn-danger")) {
+            $("#mute-btn").removeClass("btn-danger").addClass("btn-primary");               
             $("#mute-btn").tooltip('hide')
                 .attr('data-original-title', 'Mute')
                 .tooltip('show');         
@@ -510,12 +541,12 @@ $(document).on("click", "#mute-btn", function (e) {
 });
 
 // ---------------------------------------------------------------------------------------
-// On mute button, which should mute both call audio and Jarvis ASR
+// On video button
 // ---------------------------------------------------------------------------------------
 $(document).on("click", "#video-btn", function (e) {
     if (videoEnabled) {
         if($(this).hasClass("btn-primary")) {
-            $("#video-btn").removeClass("btn-primary").addClass("btn-secondary");
+            $("#video-btn").removeClass("btn-primary").addClass("btn-danger");
             $("#video-btn").tooltip('hide')
                 .attr('data-original-title', 'Video on')
                 .tooltip('show');         
@@ -523,8 +554,8 @@ $(document).on("click", "#video-btn", function (e) {
         setVideoEnabled(false);
         videoEnabled = false;
     } else {
-        if($(this).hasClass("btn-secondary")) {
-            $("#video-btn").removeClass("btn-secondary").addClass("btn-primary");               
+        if($(this).hasClass("btn-danger")) {
+            $("#video-btn").removeClass("btn-danger").addClass("btn-primary");               
             $("#video-btn").tooltip('hide')
                 .attr('data-original-title', 'Video off')
                 .tooltip('show');         

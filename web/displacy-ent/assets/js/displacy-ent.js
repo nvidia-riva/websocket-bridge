@@ -89,7 +89,45 @@ class displaCyENT {
     render(container, text, spans, ents = null) {
         let offset = 0;
 
-        spans.forEach(({ type, start, end }) => {
+        function conceptTooltip(concepts) {
+            var span = document.createElement('span');
+            var table = document.createElement('table');
+            var thead = document.createElement('thead');
+            var tbody = document.createElement('tbody');
+            var trow, th, td;
+
+            span.setAttribute('data-toggle', 'tooltip');
+            span.setAttribute('data-html', 'true');
+            // span.style.position = 'relative';
+            // span.style.zIndex = '9999';
+
+            table.setAttribute('class', 'tooltip-table table-sm');
+            trow = document.createElement('tr');
+            th = document.createElement('th');
+            th.appendChild(document.createTextNode('Concept'));
+            trow.appendChild(th);
+            th = document.createElement('th');
+            th.appendChild(document.createTextNode('CUI'));
+            trow.appendChild(th);
+            thead.appendChild(trow);
+            table.appendChild(thead);
+            concepts.forEach(concept => {
+                trow = document.createElement('tr');
+                td = document.createElement('td');
+                td.appendChild(document.createTextNode(concept.term));
+                trow.appendChild(td);
+                td = document.createElement('td');
+                td.appendChild(document.createTextNode(concept.cui));
+                trow.appendChild(td);
+                tbody.appendChild(trow);
+            });
+            table.appendChild(tbody);
+            span.setAttribute('title', table.outerHTML);
+            // mark.setAttribute('title', 'test content');
+            return span;
+        }
+
+        spans.forEach(({ type, start, end, concepts }) => {
             const entity = text.slice(start, end);
             const fragments = text.slice(offset, start).split('\n');
 
@@ -99,13 +137,18 @@ class displaCyENT {
             });
 
             if(ents == undefined || ents.includes(type.toLowerCase())) {
-                const mark = document.createElement('mark');
+                var mark = document.createElement('mark');
                 mark.setAttribute('data-entity', type.toLowerCase());
+                // mark.setAttribute('negation', 'absent');
                 mark.appendChild(document.createTextNode(entity));
-                container.appendChild(mark);
-            }
-
-            else {
+                if (concepts != undefined && concepts.length > 0) {
+                    var span = conceptTooltip(concepts);
+                    span.appendChild(mark);
+                    container.appendChild(span);
+                } else {
+                    container.appendChild(mark);
+                }
+            } else {
                 container.appendChild(document.createTextNode(entity));
             }
 

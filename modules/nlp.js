@@ -20,6 +20,7 @@ var nlpCoreProto = 'src/jarvis_proto/jarvis_nlp_core.proto';
 var protoRoot = __dirname + '/protos/';
 var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
+var Promise = require('bluebird');
 const { request } = require('express');
 var protoOptions = {
     keepCase: true,
@@ -35,6 +36,58 @@ var jCoreNLP = grpc.loadPackageDefinition(nlpCorePkgDef).nvidia.jarvis.nlp;
 var nlpClient = new jCoreNLP.JarvisCoreNLP(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
 
 var supported_entities = process.env.JARVIS_NER_ENTITIES.split(',');
+
+const pythonBridge = require('python-bridge');
+const python = pythonBridge();
+var umlsReady = false;
+python.ex`
+    from quickumls import get_quickumls_client
+    import json
+    `;
+
+async function getUMLSConcepts(text, threshold = 0.9) {
+    var results;
+    if (!umlsReady) {
+        setupUMLS()
+        .catch(e => { console.log('Error when initializing UMLS interface: ' + e.message); });    
+    }
+    try {
+        results = JSON.parse(await python`json.dumps(getUMLSResult(${text}, ${threshold}))`);
+        console.log(results);
+        return results;
+    } catch(e) {
+        console.log(e);
+    }
+}
+
+// set up UMLS concept mapper
+async function setupUMLS() {
+    try {
+        python.ex`umls_matcher = get_quickumls_client()`;
+        python.ex`
+            def getUMLSResult(text, threshold=0.7):
+                results = []
+                for l1 in umls_matcher.match(text, best_match=True, ignore_syntax=False):
+                    for l2 in l1:
+                        l2['semtypes'] = sorted(l2['semtypes'])
+                        if l2['similarity'] > threshold:
+                            results.append(l2)
+                return results
+            `
+        umlsReady = true;
+        getUMLSConcepts('metformin')
+        .then(results => {
+            if (results[0]['cui'] == 'C0025598') {
+                console.log('UMLS is ready');
+            } else {
+                console.log('ERROR: unexpected UMLS result in post-initialization check.');
+            }
+        })
+        .catch(e => { console.log('Error accessing UMLS: ' + e.message); });
+    } catch(e) {
+        console.log(e);
+    }
+};
 
 // Find the longest common subsequence that begins at the start of the mention,
 // since the NER tagger may produce unintended non-contiguous spans
@@ -78,7 +131,7 @@ findMentionMatch = function(text, start, mention) {
 }
 
 // Compute the entity spans from NER results on the text
-// Spans are only the first instance of the token
+// We use heuristics to align the entity text with start/end character spans
 // Start/end character spans from the Jarvis API are forthcoming in a later release
 function computeSpans(text, results) {
     var spans = [];
@@ -92,9 +145,21 @@ function computeSpans(text, results) {
         }
         prefix = match.substr.trim();
         searchStart = match.start + prefix.length;
-        spans.push({'start': match.start, 'end': searchStart, 'type': mention.label[0].class_name.toLowerCase()})
+        spans.push({
+            'start': match.start,
+            'end': searchStart,
+            'type': mention.label[0].class_name.toLowerCase(),
+            'text': text.substr(match.start, searchStart - match.start)
+        });
     });
-    return spans;
+    if (process.env.CONCEPT_MAP != 'UMLS') {
+        return Promise.resolve(spans);
+    } else {
+        return Promise.map(spans, async function(span) {
+            span.concepts = await getUMLSConcepts(span.text);
+            return span;
+        })
+    }
 };
 
 function getJarvisNer(text) {
@@ -113,15 +178,30 @@ function getJarvisNer(text) {
                 console.log('[Jarvis NLU] Error during NLU request (jarvis_ner): ' + err);
                 reject(err);
             } else {
-                entities = computeSpans(text, resp_ner.results[0].results);
-                if (entities.length > 0) {
-                    console.log('[Jarvis NLU] NER response results');
-                    console.log(entities);
-                }
-                resolve({ner: entities, ents: supported_entities});
+                computeSpans(text, resp_ner.results[0].results)
+                .then(entities => {
+                    if (entities.length > 0) {
+                        console.log('[Jarvis NLU] NER response results');
+                        console.log(entities);
+                    }
+                    resolve({ner: entities, ents: supported_entities});
+                });
             }
         });
     });
 };
 
-module.exports = {getJarvisNer};
+function cleanUp() {
+    // Terminate the python-node bridge. This is supposed to clear all the processing queues and such,
+    // but it currently still causes a BrokenPipeError that I haven't been able to catch (yet)
+    python.end();
+}
+
+if (process.env.CONCEPT_MAP == 'UMLS') {
+    setupUMLS()
+    .catch(e => {
+        console.log('Error when initializing UMLS interface: ' + e.message);
+    });
+}
+
+module.exports = {getJarvisNer, cleanUp};

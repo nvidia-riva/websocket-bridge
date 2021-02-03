@@ -43,15 +43,15 @@
 //- THE SOFTWARE.
 //- ----------------------------------
 
-
-$entities: ( problem: #d6cbd3, test: #eca1a6, treatment: #bdcebe, person: #a6e22d, per: #a6e22d, norp: #e00084, facility: #43c6fc, org: #43c6fc, gpe: #fd9720, loc: #fd9720, product: #8e7dff, event: #ffcc00, work_of_art: #ffcc00, language: #ffcc00, date: #2fbbab, time: #2fbbab, percent: #999, money: #999, quantity: #999, ordinal: #999, cardinal: #999 )
+// $entities: ( problem: #d6cbd3, test: #eca1a6, treatment: #bdcebe, person: #a6e22d, per: #a6e22d, norp: #e00084, facility: #43c6fc, org: #43c6fc, gpe: #fd9720, loc: #fd9720, product: #8e7dff, event: #ffcc00, work_of_art: #ffcc00, language: #ffcc00, date: #2fbbab, time: #2fbbab, percent: #999, money: #999, quantity: #999, ordinal: #999, cardinal: #999 )
+$entities: ( problem: #76b900, test: #008564, treatment: #5d1682, person: #a6e22d, per: #a6e22d, norp: #e00084, facility: #43c6fc, org: #43c6fc, gpe: #fd9720, loc: #fd9720, product: #8e7dff, event: #ffcc00, work_of_art: #ffcc00, language: #ffcc00, date: #2fbbab, time: #2fbbab, percent: #999, money: #999, quantity: #999, ordinal: #999, cardinal: #999 )
 
 .entities
     line-height: 2
 
 [data-entity]
     padding: 0.25em 0.35em
-    margin: 0 0.25em
+    margin: 1px 1px 1px 1px
     line-height: 1
     display: inline-block
     border-radius: 0.25em
@@ -76,6 +76,13 @@ $entities: ( problem: #d6cbd3, test: #eca1a6, treatment: #bdcebe, person: #a6e22
 
             &:after
                 background: $color
-
+                color: #f5f5f5
             // &[data-entity="#{$entity}"] ~ &[data-entity="#{$entity}"]:after
                 display: none
+    
+[negation]
+    background: #f7f7f7 !important
+    &:after
+        content: attr(data-entity) " | " attr(negation) !important
+        background: #8c8c8c !important
+        color: #f5f5f5 !important
