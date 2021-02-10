@@ -45,7 +45,7 @@ $ cd jarvis-contact
 $ npm install
 ```
 
-Jarvis Contact uses environment variables to manage its configuration parameters. These are kept in the config file `env.txt`, where you will want to set the URL of your running Jarvis AI Services. You may also wish to change the application's ports, or the name of the NER model if you've deployed your own custom model in Jarvis.
+Jarvis Contact uses environment variables to manage its configuration parameters. These are kept in the config file `env.txt`, where you will want to set the URL of your running Jarvis AI Services. You may also wish to change the application's ports, or the name of the NER model if you've deployed your own custom model in Jarvis. Any of the settings in `env.txt` may be overridden at runtime by setting local environment variables.
 
 Depending on your server environment, you will likely also need to open two ports on the server (by default, ports 8009 and 9000). These ports are for the main entry point to the web application, and for the [PeerJS server](https://github.com/peers/peerjs-server) which helps to negotiate the peer-to-peer chat connections. You may also need to set up port forwarding for these in your router, if applicable.
 

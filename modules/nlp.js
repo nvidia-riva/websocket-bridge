@@ -36,14 +36,11 @@ var jCoreNLP = grpc.loadPackageDefinition(nlpCorePkgDef).nvidia.jarvis.nlp;
 var nlpClient = new jCoreNLP.JarvisCoreNLP(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
 
 var supported_entities = process.env.JARVIS_NER_ENTITIES.split(',');
+var supported_negations = ['absent', 'hypothetical', 'possible'];
 
 const pythonBridge = require('python-bridge');
 const python = pythonBridge();
 var umlsReady = false;
-python.ex`
-    from quickumls import get_quickumls_client
-    import json
-    `;
 
 async function getUMLSConcepts(text, threshold = 0.9) {
     var results;
@@ -53,7 +50,7 @@ async function getUMLSConcepts(text, threshold = 0.9) {
     }
     try {
         results = JSON.parse(await python`json.dumps(getUMLSResult(${text}, ${threshold}))`);
-        console.log(results);
+        // console.log(results);
         return results;
     } catch(e) {
         console.log(e);
@@ -63,6 +60,10 @@ async function getUMLSConcepts(text, threshold = 0.9) {
 // set up UMLS concept mapper
 async function setupUMLS() {
     try {
+        python.ex`
+        from quickumls import get_quickumls_client
+        import json
+        `;
         python.ex`umls_matcher = get_quickumls_client()`;
         python.ex`
             def getUMLSResult(text, threshold=0.7):
@@ -133,7 +134,7 @@ findMentionMatch = function(text, start, mention) {
 // Compute the entity spans from NER results on the text
 // We use heuristics to align the entity text with start/end character spans
 // Start/end character spans from the Jarvis API are forthcoming in a later release
-function computeSpans(text, results) {
+function computeSpansByAlignment(text, results) {
     var spans = [];
     var searchStart = 0;
     var match, prefix;
@@ -152,14 +153,90 @@ function computeSpans(text, results) {
             'text': text.substr(match.start, searchStart - match.start)
         });
     });
-    if (process.env.CONCEPT_MAP != 'UMLS') {
-        return Promise.resolve(spans);
+    return spans;
+}
+
+// Compute the entity spans from NER results on the text
+// In this case, the model outputs an IOB-tagged sequence (one label per token)
+// and we get the entity spans ourselves.
+// This is a bit more reliable than the heuristic alignment method above
+function computeSpansFromIOB(text, results, cutPrefix=true) {
+    var spans = [];
+    var text_lc = text.toLowerCase();
+    var ind = [];
+    var prefix = cutPrefix ? 2 : 0;
+    var start = 0;
+    var end;
+    
+    // get token alignments from the original string
+    results.forEach(function(res, i) {
+        ind.push(text_lc.indexOf(res.token, start));
+        start = ind[ind.length - 1] + res.token.length;
+    });
+
+    // find entity mentions from IOB-tagged tokens
+    results.forEach(function(res, i) {
+        if(res.label[0].class_name == 'O') {
+            return;
+        }
+
+        // merge this token with the previous entity?
+        if (spans.length > 0) {
+            last_ent = spans.length - 1;
+            if (res.label[0].class_name[0] == 'I' && spans[last_ent]['type'] == res.label[0].class_name.substr(prefix)) {
+                start = spans[last_ent]['start'];
+                end = ind[i] + res.token.length;
+                spans[last_ent]['text'] = text.substr(start, end);
+                spans[last_ent]['end'] = end;
+                return;
+            }
+        }
+
+        // remove B- or I- prefix from the tag
+        start = ind[i];
+        end = start + res.token.length;
+        spans.push({
+            'text': text.substr(start, end),
+            'type': res.label[0].class_name.substr(prefix),
+            'start': start,
+            'end': end
+        });
+    });
+
+    return spans;
+
+};
+
+function computeSpans(text, results) {
+    if (process.env.JARVIS_NER_IOB) {
+        return computeSpansFromIOB(text, results);
     } else {
-        return Promise.map(spans, async function(span) {
-            span.concepts = await getUMLSConcepts(span.text);
-            return span;
-        })
+        return computeSpansByAlignment(text, results);
     }
+};
+
+function getJarvisNegation(text) {
+    var negations;
+    // Submit a Jarvis negation request -- same interface as NER
+    req = {
+        text: [text],
+        model: {
+            model_name: process.env.JARVIS_NEGATION_MODEL
+        }
+    };
+
+    return new Promise(function(resolve, reject) {
+        nlpClient.ClassifyTokens(req, function(err, resp_neg) {
+            if (err) {
+                console.log('[Jarvis NLU] Error during NLU request (jarvis_negation): ' + err);
+                reject(err);
+            } else {
+                negations = computeSpansFromIOB(text, resp_neg.results[0].results, cutPrefix=false);
+                resolve(negations);
+            }
+        });
+    });
+
 };
 
 function getJarvisNer(text) {
@@ -178,17 +255,47 @@ function getJarvisNer(text) {
                 console.log('[Jarvis NLU] Error during NLU request (jarvis_ner): ' + err);
                 reject(err);
             } else {
-                computeSpans(text, resp_ner.results[0].results)
-                .then(entities => {
-                    if (entities.length > 0) {
-                        console.log('[Jarvis NLU] NER response results');
-                        console.log(entities);
-                    }
-                    resolve({ner: entities, ents: supported_entities});
-                });
+                resolve({ner: computeSpans(text, resp_ner.results[0].results),
+                    ents: supported_entities});
             }
         });
-    });
+    }).then(function(annotations) {
+        if (annotations.ner.length == 0 || !process.env.JARVIS_NEGATION_MODEL) {
+            return annotations;
+        }
+
+        // Determine if any of the entities are negated (e.g. "No evidence of X")
+        return getJarvisNegation(text)
+        .then(function(negations) {
+            negations.forEach(function(negSpan) {
+                if (!supported_negations.includes(negSpan.type)) {
+                    return;
+                }
+                annotations.ner.forEach(function(entity, i, ents) {
+                    if (entity.start <= negSpan.start && entity.end >= negSpan.end) {
+                        ents[i]['assertion'] = negSpan.type;
+                    }
+                })
+            });
+            return annotations;
+        }, function(error) {
+            console.log('Error with negation: ' + error);
+        });
+    }).then(function(annotations) {
+        if (annotations.ner.length == 0 || process.env.CONCEPT_MAP != 'UMLS') {
+            return annotations;
+        }
+
+        // Perform entity linking on the NER results
+        return Promise.map(annotations.ner, async function(entity) {
+            entity.concepts = await getUMLSConcepts(entity.text);
+            return entity;
+        }).then(function(ner) {
+            annotations.ner = ner;
+            return annotations;
+        });
+
+    })
 };
 
 function cleanUp() {
@@ -203,5 +310,14 @@ if (process.env.CONCEPT_MAP == 'UMLS') {
         console.log('Error when initializing UMLS interface: ' + e.message);
     });
 }
+
+// getJarvisNer('Metformin is a front-line treatment for diabetes')
+// .then(function(nerResult) {
+//    console.log('NER result:');
+// //    console.log(nerResult);
+//    nerResult.ner.forEach(function(entity) {
+//        console.log(entity);
+//    });
+// });
 
 module.exports = {getJarvisNer, cleanUp};
