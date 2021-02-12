@@ -98,10 +98,8 @@ class displaCyENT {
 
             span.setAttribute('data-toggle', 'tooltip');
             span.setAttribute('data-html', 'true');
-            // span.style.position = 'relative';
-            // span.style.zIndex = '9999';
 
-            table.setAttribute('class', 'tooltip-table table-sm');
+            table.setAttribute('class', 'tooltip-table table-sm table-borderless');
             trow = document.createElement('tr');
             th = document.createElement('th');
             th.appendChild(document.createTextNode('Concept'));
@@ -123,7 +121,6 @@ class displaCyENT {
             });
             table.appendChild(tbody);
             span.setAttribute('title', table.outerHTML);
-            // mark.setAttribute('title', 'test content');
             return span;
         }
 
@@ -158,9 +155,6 @@ class displaCyENT {
         });
 
         container.appendChild(document.createTextNode(text.slice(offset, text.length)));
-
-        console.log(`%c💥  HTML markup\n%c<div class="entities">${container.innerHTML}</div>`, 'font: bold 16px/2 arial, sans-serif', 'font: 13px/1.5 Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace');
-
         if(typeof this.onRender === 'function') this.onRender();
     }
 }

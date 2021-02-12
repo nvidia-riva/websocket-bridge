@@ -186,7 +186,7 @@ function computeSpansFromIOB(text, results, cutPrefix=true) {
             if (res.label[0].class_name[0] == 'I' && spans[last_ent]['type'] == res.label[0].class_name.substr(prefix)) {
                 start = spans[last_ent]['start'];
                 end = ind[i] + res.token.length;
-                spans[last_ent]['text'] = text.substr(start, end);
+                spans[last_ent]['text'] = text.substr(start, end - start);
                 spans[last_ent]['end'] = end;
                 return;
             }
@@ -196,7 +196,7 @@ function computeSpansFromIOB(text, results, cutPrefix=true) {
         start = ind[i];
         end = start + res.token.length;
         spans.push({
-            'text': text.substr(start, end),
+            'text': text.substr(start, end - start),
             'type': res.label[0].class_name.substr(prefix),
             'start': start,
             'end': end

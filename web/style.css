@@ -55,8 +55,9 @@ mark, .mark {
     display: inline;
 }
 .scrollable {
-    min-height: 200px;
-    max-height: 400px;
+    /* min-height: 200px; */
+    /* max-height: 400px; */
+    height: 400px;
     overflow-y: auto;
     background-color: #f7f7f7
 }
@@ -98,6 +99,9 @@ mark, .mark {
 .toast-warning {
     background-color: var(--warning);
 }
+.custom-modal bootbox-close-button {
+    -webkit-box-direction: reverse!important;
+}
 .tooltip {
     pointer-events: none;
     font-family: DINWebPro-Regular, D-DIN-Web-Regular, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -107,6 +111,9 @@ mark, .mark {
 }
 .tooltip-table table {
     color: #fff;
+}
+.table-sm>:not(caption)>*>* {
+    padding: 0.2rem 0.5rem;
 }
 .speaker-self {
     color: var(--nv-green);

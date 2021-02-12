@@ -36,6 +36,8 @@ var socket = socketio.on('connect', function() {
     console.log('Socket connected to speech server');
 });
 
+var concepts = new Map(); // Tally of normalized concepts
+
 var scrollToBottomTime = 500;
 var displacy;
 var ents;
@@ -141,6 +143,7 @@ function startJarvisService() {
             $('#input_field').val('');
             // Render the transcript locally
             // TODO: check for error in result.annotations
+            updateConceptCounts(result.annotations.ner);
             showAnnotatedTranscript(username, result.annotations, result.transcript);
             // Send the transcript to the peer to render
             if (peerConn != undefined && callActive) {
@@ -175,29 +178,51 @@ function startJarvisService() {
         displacy.render(entityDiv, '', ner, ents);
         connArea.append(entityDiv);
 
-        // // If we have concept mapping enabled, create a card for the summary table
-        // if (response.concept_map != undefined) {
-        //     addConceptSummary();
-        // }
+        // If we have concept mapping enabled, show the summary table
+        if (response.concept_map != undefined) {
+            $('#concept_col').removeClass('d-none');
+            updateConceptTable();
+        }
     });
 }
 
 // ---------------------------------------------------------------------------------------
-// Inserts a card for a summary table of mapped concepts in the conversation
+// Update the concept summary
 // ---------------------------------------------------------------------------------------
-function addConceptSummary() {
-    var conceptDiv = document.createElement('div');
-    var transCol = document.getElementById('transcription_col');
-    var parent = transCol.parentNode;
-    conceptDiv.setAttribute('class', 'col-sm-4');
+function updateConceptCounts(entities) {
+    var concept, record;
+    entities.forEach(function(entity) {
+        if (entity.concepts && entity.concepts.length > 0 && entity.assertion == undefined) {
+            concept = entity.concepts[0];
+            record = concepts.get(concept.cui);
+            if (record == undefined) {
+                concepts.set(concept.cui, {term: concept.term, count: 1});
+            } else {
+                concepts.set(concept.cui, {term: record.term, count: record.count + 1});
+            }
+        }
+    });
 
-    var conceptCard = document.createElement('div');
-    conceptCard.setAttribute('class', 'card');
-    conceptArea.appendChild(conceptCard);
-    parent.insertBefore(conceptArea, transCol);
+    updateConceptTable();
+}
 
+// ---------------------------------------------------------------------------------------
+// Update the concept table
+// ---------------------------------------------------------------------------------------
+function updateConceptTable() {
+    var columns = [{field: 'term', title: 'Concept'}, {field: 'cui', title: 'Code'},
+        {field: 'count', title: 'Count'}];
+    var data = [];
 
-    conceptDiv.innerHTML = '<div '
+    // update table
+    for (let [cui, record] of concepts.entries()) {
+        data.push({term: record.term, cui: cui, count: record.count});
+    }
+    $('#concept_table').bootstrapTable('destroy');
+    $('#concept_table').bootstrapTable({
+        height: 430, classes: 'table table-hover table-sm',
+        sortName: 'count', sortOrder: 'desc',
+        columns: columns, data: data});
 }
 
 // ---------------------------------------------------------------------------------------
@@ -209,12 +234,10 @@ function showAnnotatedTranscript(speaker, annotations, text) {
         return;
 
     var nameContainer = document.createElement('div');
-    // var textContainer = document.createElement('div');
     var textContainer = document.createElement('p');
     if (speaker == username) {
         nameContainer.setAttribute('class', 'd-flex justify-content-end');
         nameContainer.innerHTML = "<p class=\"speaker-self mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
-        // textContainer.setAttribute('class', 'row justify-content-end mx-0');
         textContainer.setAttribute('align', 'right');
     } else {
         nameContainer.innerHTML = "<p class=\"speaker-other mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
@@ -228,11 +251,6 @@ function showAnnotatedTranscript(speaker, annotations, text) {
 
     // Activate tooltips
     $("#transcription_area").tooltip({ selector: '[data-toggle=tooltip]' });
-
-    // Scroll the full page to the bottom?
-    // $("html, body").animate({scrollTop: $(document).height()}, scrollToBottomTime);
-
-    
 }
 
 /**
@@ -311,7 +329,7 @@ function setCallHandlers() {
     });
 
     peerCall.on('error', function(error) { // TODO: improve peerjs error handling
-        bootbox.alert(error);
+        bootbox.alert(error).find(".bootbox-close-button").addClass("float-end");
         console.log(error);
     });
 }
@@ -335,7 +353,7 @@ function setDataConnHandlers() {
 // ---------------------------------------------------------------------------------------
 $(document).ready(function () {
     // Activate tooltips
-    $("body").tooltip({ selector: '[data-toggle=tooltip]' });
+    $("body").tooltip({ selector: '[data-mdb-toggle=tooltip]' });
 
     // Start DisplaCy for the NER rendering
     displacy = new displaCyENT('http://localhost:8000', {})
@@ -383,7 +401,7 @@ $(document).ready(function () {
     });
 
     peer.on('error', function(err){
-        bootbox.alert(err.message);
+        bootbox.alert(err.message).find(".bootbox-close-button").addClass("float-end");
         console.error(err.message);
     });
 
@@ -402,7 +420,7 @@ $(document).ready(function () {
             } else {
                 console.log("Call denied !");
             }
-        });
+        }).find(".bootbox-close-button").addClass("float-end");
     });
 
     /**
@@ -418,7 +436,8 @@ $(document).ready(function () {
             onReceiveStream(stream, 'my-camera');
         },
         error: function(err){
-            bootbox.alert("Cannot get access to your camera and microphone.");
+            bootbox.alert("Cannot get access to your camera and microphone.")
+            .find(".bootbox-close-button").addClass("float-end");
             console.error(err);
         }
     });
