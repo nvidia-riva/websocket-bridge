@@ -17,6 +17,7 @@
 require('dotenv').config({path: 'env.txt'});
 
 var nlpCoreProto = 'src/jarvis_proto/jarvis_nlp_core.proto';
+var entityLinkingProto = 'src/entity_linking.proto';
 var protoRoot = __dirname + '/protos/';
 var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
@@ -30,64 +31,46 @@ var protoOptions = {
     oneofs: true,
     includeDirs: [protoRoot]
 };
-var nlpCorePkgDef = protoLoader.loadSync(nlpCoreProto, protoOptions);
 
+// Jarvis modules
+var nlpCorePkgDef = protoLoader.loadSync(nlpCoreProto, protoOptions);
 var jCoreNLP = grpc.loadPackageDefinition(nlpCorePkgDef).nvidia.jarvis.nlp;
 var nlpClient = new jCoreNLP.JarvisCoreNLP(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
+
+// Entity linking module
+var entityLinkingPkgDef = protoLoader.loadSync(entityLinkingProto, protoOptions);
+var entityLinking = grpc.loadPackageDefinition(entityLinkingPkgDef).entitylinking;
+var entityLinkingClient = new entityLinking.EntityLinking(process.env.ENTITY_LINKING_URL, grpc.credentials.createInsecure());
 
 var supported_entities = process.env.JARVIS_NER_ENTITIES.split(',');
 var supported_negations = ['absent', 'hypothetical', 'possible'];
 
-const pythonBridge = require('python-bridge');
-const python = pythonBridge();
-var umlsReady = false;
+function getUMLSConcepts(text, threshold=0.3) {
+    var results = [];
+    var top_n = 3;
+    req = {
+        text: [text],
+        top_n: top_n,
+        sim_threshold: threshold
+    };
 
-async function getUMLSConcepts(text, threshold = 0.9) {
-    var results;
-    if (!umlsReady) {
-        setupUMLS()
-        .catch(e => { console.log('Error when initializing UMLS interface: ' + e.message); });    
-    }
-    try {
-        results = JSON.parse(await python`json.dumps(getUMLSResult(${text}, ${threshold}))`);
-        // console.log(results);
-        return results;
-    } catch(e) {
-        console.log(e);
-    }
-}
-
-// set up UMLS concept mapper
-async function setupUMLS() {
-    try {
-        python.ex`
-        from quickumls import get_quickumls_client
-        import json
-        `;
-        python.ex`umls_matcher = get_quickumls_client()`;
-        python.ex`
-            def getUMLSResult(text, threshold=0.7):
-                results = []
-                for l1 in umls_matcher.match(text, best_match=True, ignore_syntax=False):
-                    for l2 in l1:
-                        l2['semtypes'] = sorted(l2['semtypes'])
-                        if l2['similarity'] > threshold:
-                            results.append(l2)
-                return results
-            `
-        umlsReady = true;
-        getUMLSConcepts('metformin')
-        .then(results => {
-            if (results[0]['cui'] == 'C0025598') {
-                console.log('UMLS is ready');
+    return new Promise(function(resolve, reject) {
+        entityLinkingClient.LinkEntity(req, function(err, response) {
+            if (err) {
+                console.log('[Entity Linking] Error during Entity Linking request: ' + err);
+                reject(err);
             } else {
-                console.log('ERROR: unexpected UMLS result in post-initialization check.');
-            }
-        })
-        .catch(e => { console.log('Error accessing UMLS: ' + e.message); });
-    } catch(e) {
-        console.log(e);
-    }
+                for (let idx = 0; idx < response.results.length; idx++) {
+                    results.push({
+                        'cui': response.results[idx].entity_cui,
+                        'term': response.results[idx].rep_sent,
+                        'score': response.results[idx].sim_score
+                    });
+                };
+                resolve(results);
+            };
+        });
+    });
 };
 
 // Find the longest common subsequence that begins at the start of the mention,
@@ -288,8 +271,13 @@ function getJarvisNer(text) {
 
         // Perform entity linking on the NER results
         return Promise.map(annotations.ner, async function(entity) {
-            entity.concepts = await getUMLSConcepts(entity.text);
-            return entity;
+            if (entity.type == 'o') {
+                entity.concepts = [];
+                return entity;
+            } else {
+                entity.concepts = await getUMLSConcepts(entity.text);
+                return entity;
+            }
         }).then(function(ner) {
             annotations.ner = ner;
             return annotations;
@@ -298,26 +286,4 @@ function getJarvisNer(text) {
     })
 };
 
-function cleanUp() {
-    // Terminate the python-node bridge. This is supposed to clear all the processing queues and such,
-    // but it currently still causes a BrokenPipeError that I haven't been able to catch (yet)
-    python.end();
-}
-
-if (process.env.CONCEPT_MAP == 'UMLS') {
-    setupUMLS()
-    .catch(e => {
-        console.log('Error when initializing UMLS interface: ' + e.message);
-    });
-}
-
-// getJarvisNer('Metformin is a front-line treatment for diabetes')
-// .then(function(nerResult) {
-//    console.log('NER result:');
-// //    console.log(nerResult);
-//    nerResult.ner.forEach(function(entity) {
-//        console.log(entity);
-//    });
-// });
-
-module.exports = {getJarvisNer, cleanUp};
+module.exports = {getJarvisNer};

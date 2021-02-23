@@ -164,7 +164,6 @@ function setupServer() {
 process.on('SIGINT', function() {
     console.log("Caught interrupt signal, cleaning up");
 
-    nlp.cleanUp();
     process.exit();
 });
 

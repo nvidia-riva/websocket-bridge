@@ -107,6 +107,9 @@ class displaCyENT {
             th = document.createElement('th');
             th.appendChild(document.createTextNode('CUI'));
             trow.appendChild(th);
+            th = document.createElement('th');
+            th.appendChild(document.createTextNode('Score'));
+            trow.appendChild(th);
             thead.appendChild(trow);
             table.appendChild(thead);
             concepts.forEach(concept => {
@@ -117,6 +120,10 @@ class displaCyENT {
                 td = document.createElement('td');
                 td.appendChild(document.createTextNode(concept.cui));
                 trow.appendChild(td);
+                td = document.createElement('td');
+                td.appendChild(document.createTextNode(concept.score.toFixed(2)));
+                trow.appendChild(td);
+
                 tbody.appendChild(trow);
             });
             table.appendChild(tbody);
