@@ -45,11 +45,12 @@ var entityLinkingClient = new entityLinking.EntityLinking(process.env.ENTITY_LIN
 var supported_entities = process.env.JARVIS_NER_ENTITIES.split(',');
 var supported_negations = ['absent', 'hypothetical', 'possible'];
 
+// TODO: use async more effectively to batch over the whole utterance
 function getUMLSConcepts(text, threshold=0.3) {
     var results = [];
     var top_n = 3;
     req = {
-        text: [text],
+        query: [text],
         top_n: top_n,
         sim_threshold: threshold
     };
@@ -60,11 +61,12 @@ function getUMLSConcepts(text, threshold=0.3) {
                 console.log('[Entity Linking] Error during Entity Linking request: ' + err);
                 reject(err);
             } else {
-                for (let idx = 0; idx < response.results.length; idx++) {
+                // TODO: convert this to forEach
+                for (let idx = 0; idx < response.results[0].result.length; idx++) {
                     results.push({
-                        'cui': response.results[idx].entity_cui,
-                        'term': response.results[idx].rep_sent,
-                        'score': response.results[idx].sim_score
+                        'cui': response.results[0].result[idx].entity_cui,
+                        'term': response.results[0].result[idx].rep_sent,
+                        'score': response.results[0].result[idx].sim_score
                     });
                 };
                 resolve(results);
