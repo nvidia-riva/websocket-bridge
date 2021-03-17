@@ -307,6 +307,7 @@ function handleMessage(data) {
             if (data.from != peer_username) {
                 setPeerUsername(data.from);
             }
+            updateConceptCounts(data.annotations.ner);
             showAnnotatedTranscript(data.from, data.annotations, data.text);
             break;
         case 'username':
