@@ -1,4 +1,29 @@
-# Jarvis Contact
+# Riva Contact Audiocodecs Integration
+
+This demo integrates the Audiocodecs VoiceAI Gateway API with Riva. 
+
+The most significant modification from the Riva Contact demo was removing socket.io and replacing with websockets ws.
+
+In its current version, the application has been modified to only support ASR. Peer-to-peer functionality has also been removed.
+
+To run locally, first edit `env.txt` so that `JARVIS_API_URL` is pointing to a running Riva instance with ASR enabled. Then
+
+```bash
+$ cd riva-contact
+$ npm install
+$ npm run start
+```
+
+This will launch the application at `https://localhost:8009/`
+
+### Authors
+- Sunil Kumar Jang Bahadur (sjangbahadur@nvidia.com) 
+- Chris Pang (christopherp@nvidia.com)
+
+
+(old documentation below)
+
+# Jarvis Contact (old documentation below)
 
 Jarvis Contact is a web-based demonstration app for contact center applications, combining peer-to-peer video chat with streaming automatic speech recognition (ASR) and natural language processing (NLP). It is a lightweight Node.js application, backed by robust NVIDIA Jarvis AI Services.
 

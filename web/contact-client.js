@@ -15,33 +15,21 @@
  */
 
 const id = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-const socketio = io();
 const resampleWorker = './resampler.js';
-
 var peer;
-var peer_id;
-var username = 'User ' + id.toString();
+var username = 'Test_speaker_' + id.toString();
 var peer_username;
-var peerConn;
-var peerCall;
 var localStream;
-var peerStream;
-var audioContext;
 var sampleRate;
 var jarvisRunning = false;
-var callActive = false;
-var muted = false;
-var videoEnabled = true;
-var socket = socketio.on('connect', function() {
-    console.log('Socket connected to speech server');
-});
 
-var concepts = new Map(); // Tally of normalized concepts
-
-var scrollToBottomTime = 500;
 var displacy;
-var ents;
 var latencyTimer;
+var scrollToBottomTime = 500;
+var muted = false;
+
+
+var websocket;
 
 // ---------------------------------------------------------------------------------------
 // Latency tracking
@@ -52,8 +40,8 @@ class LatencyTimer {
         this.latencies = new Array();
     }
 
-    start(data=null) {
-        return this.startTimes.push({start: performance.now(), data: data}) - 1;
+    start(data = null) {
+        return this.startTimes.push({ start: performance.now(), data: data }) - 1;
     }
 
     end(index) {
@@ -62,18 +50,13 @@ class LatencyTimer {
         }
         var latency = Math.round(performance.now() - this.startTimes[index].start);
         this.latencies.push(latency);
-        return {latency: latency, data: this.startTimes[index].data};
+        return { latency: latency, data: this.startTimes[index].data };
     }
 
     average() {
         const sum = this.latencies.reduce((a, b) => a + b, 0);
         return Math.round((sum / this.latencies.length) || 0);
     }
-}
-
-function setPeerUsername(peerName) {
-    peer_username = peerName;
-    document.getElementById("peer_cam_label").innerHTML = peer_username;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -84,154 +67,124 @@ function startJarvisService() {
         return;
     }
     document.getElementById('jarvis-btn').disabled = true;
+    document.getElementById('jarvis-btn-stop').removeAttribute("disabled");
     latencyTimer = new LatencyTimer();
 
-    if (socket == null) {
-        socket = socketio.on('connect', function() {
-            console.log('Connected to speech server');
-        });    
-    } else {
-        socket.disconnect();
-        socket.connect();
-        console.log('Reconnected to speech server');
-    }
-    
-    // Start ASR streaming
-    let audioInput = audio_context.createMediaStreamSource(localStream);
-    let bufferSize = 4096;
-    let recorder = audio_context.createScriptProcessor(bufferSize, 1, 1);
-    let worker = new Worker(resampleWorker);
-    worker.postMessage({
-	    command: 'init',
-	    config: {
-            sampleRate: sampleRate,
-            outputSampleRate: 16000
-	    }
-    });
-    
-    // Use a worker thread to resample the audio, then send to server
-    recorder.onaudioprocess =  function(audioProcessingEvent) {
-        let inputBuffer = audioProcessingEvent.inputBuffer;
-        worker.postMessage({
-            command: 'convert',
-            // We only need the first channel
-            buffer: inputBuffer.getChannelData(0)
+    if (websocket == null || websocket.readyState !== WebSocket.OPEN) {
+        websocket = new WebSocket('wss://localhost:8009/');
+
+        let audioInput = audio_context.createMediaStreamSource(localStream);
+        let bufferSize = 4096;
+        let recorder = audio_context.createScriptProcessor(bufferSize, 1, 1);
+
+        websocket.addEventListener('open', function (evt) {
+            console.log('WebSocket Client Connected');
+            start_asr = { "type": "start", "language": "en-US", "format": "raw", "encoding": "LINEAR16", "sampleRateHz": 16000 };
+            console.log(JSON.stringify(start_asr));
+            websocket.send(JSON.stringify(start_asr));
         });
-        worker.onmessage = function(msg) {
-            if (msg.data.command == 'newBuffer') {
-                socket.emit('audio_in', msg.data.resampled.buffer);
-            }
-        };
-    };
 
-    // connect stream to our recorder
-    audioInput.connect(recorder);
-    // connect our recorder to the previous destination
-    recorder.connect(audio_context.destination);
-    jarvisRunning = true;
-
-    console.log('Streaming audio to server')
-
-    // Transcription results streaming back from Jarvis
-    socket.on('transcript', function(result) {
-        if (result.transcript == undefined) {
-            return;
-        }
-        document.getElementById('input_field').value = result.transcript;
-        if (result.is_final) {
-            // Erase input field
-            $('#input_field').val('');
-            // Render the transcript locally
-            // TODO: check for error in result.annotations
-            updateConceptCounts(result.annotations.ner);
-            showAnnotatedTranscript(username, result.annotations, result.transcript);
-            // Send the transcript to the peer to render
-            if (peerConn != undefined && callActive) {
-                peerConn.send({from: username, type: 'transcript', annotations: result.annotations, text: result.transcript});
-            }
-            if (result.latencyIndex !== undefined) {
-                var latencyResult = latencyTimer.end(result.latencyIndex);
-                console.log(latencyResult.data.name + ': ' + latencyResult.latency.toString() + ' ms');
-                console.log('Average latency (overall): ' + latencyTimer.average().toString() + ' ms');
-            }
-        }
-    });
-
-    document.getElementById('submit_text').removeAttribute('disabled');
-    document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
-    var connArea = document.getElementById('connection_status');
-    toastr.success('Jarvis is connected.');
-
-    socket.emit('get_nlp_config');
-    socket.on('nlp_config', function(response) {
-        var entityHeader, entityDiv, ner;
-        ents = response.ner_entities.split(',');
-        console.log('Supported entities: ' + response.ner_entities);
-        // Render a legend from the entity list
-        entityHeader = document.createElement('div');
-        entityHeader.innerHTML = '<p class=\"mb-1\">Entities being tagged:</p>';
-        connArea.appendChild(entityHeader);
-        entityDiv = document.createElement('div');
-        ner = ents.map(function(type){ 
-            return {'start': 0, 'end': 0, 'type': type};
+        websocket.addEventListener('close', function (result) {
+            console.log("Web socket closed: '" + JSON.stringify(result) + "'");
+            audioInput.disconnect();
+            recorder.disconnect();
+            jarvisRunning = false;
+            //websocket.close();
         });
-        displacy.render(entityDiv, '', ner, ents);
-        connArea.append(entityDiv);
 
-        // If we have concept mapping enabled, show the summary table
-        if (response.concept_map != undefined) {
-            $('#concept_col').removeClass('d-none');
-            updateConceptTable();
-        }
-    });
-}
+        websocket.addEventListener('error', function (err) {
+            bootbox.alert(err.message).find(".bootbox-close-button").addClass("float-end");
+            console.error(err.message);
+        });
 
-// ---------------------------------------------------------------------------------------
-// Update the concept summary
-// ---------------------------------------------------------------------------------------
-function updateConceptCounts(entities) {
-    var concept, record;
-    entities.forEach(function(entity) {
-        if (entity.concepts && entity.concepts.length > 0 && entity.assertion == undefined) {
-            concept = entity.concepts[0];
-            record = concepts.get(concept.cui);
-            if (record == undefined) {
-                concepts.set(concept.cui, {term: concept.term, count: 1});
-            } else {
-                concepts.set(concept.cui, {term: record.term, count: record.count + 1});
+        // Transcription results streaming back from Jarvis
+        websocket.addEventListener('message', function (result) {
+            result_data = JSON.parse(result.data);
+
+            if (result_data.type === "started") {
+                // Start ASR streaming
+
+                let worker = new Worker(resampleWorker);
+                worker.postMessage({
+                    command: 'init',
+                    config: {
+                        sampleRate: sampleRate,
+                        outputSampleRate: 16000
+                    }
+                });
+
+                // Use a worker thread to resample the audio, then send to server
+                recorder.onaudioprocess = function (audioProcessingEvent) {
+                    let inputBuffer = audioProcessingEvent.inputBuffer;
+                    worker.postMessage({
+                        command: 'convert',
+                        // We only need the first channel
+                        buffer: inputBuffer.getChannelData(0)
+                    });
+                    worker.onmessage = function (msg) {
+                        if (msg.data.command == 'newBuffer') {
+                            if (websocket.readyState === WebSocket.OPEN) {
+                                websocket.send(msg.data.resampled.buffer);
+                            }
+                        }
+                    };
+                };
+
+                // connect stream to our recorder
+                audioInput.connect(recorder);
+                // connect our recorder to the previous destination
+                recorder.connect(audio_context.destination);
+                jarvisRunning = true;
+
+                console.log('Streaming audio to server');
+
+                document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
+                var connArea = document.getElementById('connection_status');
+                toastr.success('Jarvis is connected.');
             }
-        }
-    });
-
-    updateConceptTable();
-}
-
-// ---------------------------------------------------------------------------------------
-// Update the concept table
-// ---------------------------------------------------------------------------------------
-function updateConceptTable() {
-    var columns = [{field: 'term', title: 'Concept'}, {field: 'cui', title: 'Code'},
-        {field: 'count', title: 'Count'}];
-    var data = [];
-
-    // update table
-    for (let [cui, record] of concepts.entries()) {
-        data.push({term: record.term, cui: cui, count: record.count});
+            else if (result_data.type === "end") {
+                console.log(result.data);
+                return;
+            }
+            else if (result_data === undefined || result_data.alternatives === undefined) {
+                return;
+            }
+            else {
+                document.getElementById('input_field').value = result_data.alternatives[0].text;
+                if (result_data.type === "recognition") {
+                    // Erase input field
+                    $('#input_field').val('');
+                    showASRTranscript(username, "", result_data.alternatives[0].text);
+                    if (result.latencyIndex !== undefined) {
+                        var latencyResult = latencyTimer.end(result.latencyIndex);
+                        console.log(latencyResult.data.name + ': ' + latencyResult.latency.toString() + ' ms');
+                        console.log('Average latency (overall): ' + latencyTimer.average().toString() + ' ms');
+                    }
+                }
+            }
+        });
     }
-    $('#concept_table').bootstrapTable('destroy');
-    $('#concept_table').bootstrapTable({
-        height: 430, classes: 'table table-hover table-sm',
-        sortName: 'count', sortOrder: 'desc',
-        columns: columns, data: data});
+
+
+}
+
+function stopJarvisService() {
+    console.log("Stop ASR websocket connection");
+    document.getElementById('jarvis-btn-stop').disabled = true;
+    document.getElementById('jarvis-btn').removeAttribute("disabled");
+    if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({ "type": "stop" }));
+    }
+    jarvisRunning = false;
 }
 
 // ---------------------------------------------------------------------------------------
-// Shows NLP-annotated transcript
+// Shows ASR transcript
 // ---------------------------------------------------------------------------------------
-function showAnnotatedTranscript(speaker, annotations, text) {
+function showASRTranscript(speaker, annotations, text) {
 
-    if(!annotations)
-        return;
+    //if(!annotations)
+    //    return;
 
     var nameContainer = document.createElement('div');
     var textContainer = document.createElement('p');
@@ -243,282 +196,63 @@ function showAnnotatedTranscript(speaker, annotations, text) {
         nameContainer.innerHTML = "<p class=\"speaker-other mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
     }
 
-    displacy.render(textContainer, text, annotations.ner, annotations.ents);
+    //displacy.render(textContainer, text, annotations.ner, annotations.ents);
+    textContainer.innerHTML = "<p>" + text + "</p>";
 
     $("#transcription_area").append(nameContainer);
     $("#transcription_area").append(textContainer);
-    $("#transcription_card").animate({scrollTop: 100000}, scrollToBottomTime);
+    $("#transcription_card").animate({ scrollTop: 100000 }, scrollToBottomTime);
 
     // Activate tooltips
     $("#transcription_area").tooltip({ selector: '[data-toggle=tooltip]' });
 }
 
 /**
- * Starts the request of the camera and microphone
+ * Starts the request of the microphone
  *
  * @param {Object} callbacks
  */
-function requestLocalVideo(callbacks) {
-   // Monkeypatch for crossbrowser getUserMedia
+function requestLocalAudio(callbacks) {
+    // Monkeypatch for crossbrowser getUserMedia
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
     // Request audio and video
     // Try getting video, if it fails then go for audio only
-    navigator.getUserMedia({ audio: true, video: true }, callbacks.success, 
-        function() { // error -- can't access video. Try audio only
-            navigator.getUserMedia({ audio: true}, callbacks.success ,callbacks.error);
+    navigator.getUserMedia({ audio: true, video: false }, callbacks.success,
+        function () { // error -- can't access video. Try audio only
+            navigator.getUserMedia({ audio: true }, callbacks.success, callbacks.error);
         }
     );
 }
 
-/**
- * Attach the provided stream (video and audio) to the desired video element
- *
- * @param {*} stream
- * @param {*} element_id
- */
-function onReceiveStream(stream, element_id) {
-    // Retrieve the video element
-    var video = document.getElementById(element_id);
-    // Set the given stream as the video source
-    video.srcObject = stream;
-}
-
-function clearStream(element_id) {
-    var video = document.getElementById(element_id);
-    video.pause();
-    video.srcObject = new MediaStream(); // replace the video element with an empty stream
-    video.load();
-}
-
-/**
- * Receive messages from the peer
- *
- * @param {Object} data
- */
-function handleMessage(data) {
-    console.log("Message: " + data);
-
-    switch(data.type) {
-        case 'startJarvis':
-            startJarvisService();
-            break;
-        case 'transcript':
-            if (data.from != peer_username) {
-                setPeerUsername(data.from);
-            }
-            updateConceptCounts(data.annotations.ner);
-            showAnnotatedTranscript(data.from, data.annotations, data.text);
-            break;
-        case 'username':
-            setPeerUsername(data.from);
-            break;
-        default:
-            console.log('Received unknown message from peer, of type ' + data.type);
-    }
-}
-
-function setCallHandlers() {
-    peerCall.on('stream', function(stream) {
-        peerStream = stream;
-        if (!callActive) {
-            toastr.success('Call connected.');
-        }
-        callActive = true;
-        // Display the stream of the other user in the peer-camera video element
-        onReceiveStream(stream, 'peer-camera');
-    });
-
-    peerCall.on('error', function(error) { // TODO: improve peerjs error handling
-        bootbox.alert(error).find(".bootbox-close-button").addClass("float-end");
-        console.log(error);
-    });
-}
-
-function setDataConnHandlers() {
-    // Use the handleMessage to callback when a message comes in
-    peerConn.on('data', handleMessage);
-
-    // Handle when the call finishes
-    peerConn.on('close', function() {
-        toastr.info('Call with ' + peer_username + ' has ended.');
-        console.log('Peer data connection ended');
-        callActive = false;
-        clearStream('peer-camera');
-        $("#call").html('Call');
-    });
-}
-
-// ---------------------------------------------------------------------------------------
-// When the document is ready
-// ---------------------------------------------------------------------------------------
 $(document).ready(function () {
     // Activate tooltips
     $("body").tooltip({ selector: '[data-mdb-toggle=tooltip]' });
 
     // Start DisplaCy for the NER rendering
-    displacy = new displaCyENT('http://localhost:8000', {})
-
-    /**
-     * The iceServers on this example are public and can be used for a demo project.
-     * They are intended for low-volume use; please do not abuse them.
-     * They also may be discontinued without notice.
-     */
-    peer = new Peer(id, {
-        host: document.domain,
-        port: parseInt(location.port) + 1,
-        path: '/peerjs',
-        debug: 3,
-        secure: true,
-        config: {
-            'iceServers': [
-                { url: 'stun:stun1.l.google.com:19302' },
-                {
-                    url: 'turn:numb.viagenie.ca',
-                    credential: 'JarvisDemo',
-                    username: 'cparisien@nvidia.com'
-                }
-            ]
-        }
-    });
-
-    // Once the initialization succeeds:
-    // Show the ID that allows other user to connect to your session.
-    peer.on('open', function() {
-        document.getElementById("your_id").innerHTML = "Your ID: <strong>" + peer.id + "</strong>";
-
-        // Report my own ID to the server
-        if (socket) {
-            socket.emit('peerjs_id', peer.id);
-        }
-    });
-
-    peer.on('connection', function(connection) {
-        peerConn = connection;
-        peer_id = connection.peer;
-        setPeerUsername(peerConn.metadata.username);
-        console.log("Received connection request from " + peer_username);
-        setDataConnHandlers();
-    });
-
-    peer.on('error', function(err){
-        bootbox.alert(err.message).find(".bootbox-close-button").addClass("float-end");
-        console.error(err.message);
-    });
-
-    /**
-     * Handle the on receive call event
-     */
-    peer.on('call', function(call) {
-        bootbox.confirm("Incoming video call. Accept?", function(acceptsCall) {
-            if(acceptsCall) {
-                // Answer the call with your own video/audio stream
-                peerCall = call;
-                peerCall.answer(localStream);
-                $("#call").html('End');
-                setCallHandlers();
-                startJarvisService();
-            } else {
-                console.log("Call denied !");
-            }
-        }).find(".bootbox-close-button").addClass("float-end");
-    });
+    //displacy = new displaCyENT('http://localhost:8000', {})
 
     /**
      * Request browser audio and video, and show the local stream
      */
-    requestLocalVideo({
-        success: function(stream){
+    requestLocalAudio({
+        success: function (stream) {
             localStream = stream;
             audio_context = new AudioContext();
             sampleRate = audio_context.sampleRate;
             console.log("Sample rate of local audio: " + sampleRate)
-
-            onReceiveStream(stream, 'my-camera');
         },
-        error: function(err){
-            bootbox.alert("Cannot get access to your camera and microphone.")
-            .find(".bootbox-close-button").addClass("float-end");
+        error: function (err) {
+            bootbox.alert("Cannot get access to your microphone.")
+                .find(".bootbox-close-button").addClass("float-end");
             console.error(err);
         }
     });
 
     // Allow us to launch Jarvis with only the local speaker
     document.getElementById('jarvis-btn').removeAttribute("disabled");
+    document.getElementById('jarvis-btn-stop').disabled = true;
 
-});
-
-// ---------------------------------------------------------------------------------------
-// Click on user name button
-// ---------------------------------------------------------------------------------------
-$(document).on("click", "#name_btn", function (e) {
-    // Prevent reload of page after submitting of form
-    e.preventDefault();
-    username = $('#name').val();
-    console.log("username: " + username);
-    document.getElementById("self_cam_label").innerHTML = username;
-    if (peerConn != undefined) {
-        peerConn.send({from: username, type: 'username'});
-    }
-});
-
-function startCall() {
-    // Connect with the user
-    peer_id = document.getElementById("peer_id").value;
-    if (!peer_id) {
-        return false;
-    }
-
-    peerConn = peer.connect(peer_id, {
-        metadata: {
-            'username': username
-        }
-    });
-    setDataConnHandlers();
-    
-    // Call the peer
-    console.log('Calling peer ' + peer_id);
-    peerCall = peer.call(peer_id, localStream);
-    $("#call").html('End');
-    setCallHandlers();
-    setPeerUsername('User ' + peer_id.toString());
-    startJarvisService();
-}
-
-function endCall() {
-    callActive = false;
-
-    // Close the media and data connections with the peer
-    peerCall.close();
-    peerConn.close();
-
-    // $('#peer_id').val("");
-    $("#call").html('Call'); // set the call button back
-}
-
-// ---------------------------------------------------------------------------------------
-// Request a video call with another user
-// ---------------------------------------------------------------------------------------
-$(document).on("click", "#call", function (e) {
-    // Prevent reload of page after submitting of form
-    e.preventDefault();
-
-    if (!callActive) {
-        startCall();
-    } else {
-        endCall();
-    }
-});
-
-// ---------------------------------------------------------------------------------------
-// On clicking the Transcription button, start Jarvis
-// ---------------------------------------------------------------------------------------
-$(document).on("click", "#jarvis-btn", function (e) {
-    // Send message to peer to also connect to Jarvis, then start my own connection
-    if (peerConn != undefined) {
-        peerConn.send({from: username, type: 'startJarvis'});
-    }
-    startJarvisService();
 });
 
 function setAudioEnabled(enabled) {
@@ -528,76 +262,37 @@ function setAudioEnabled(enabled) {
     }
 }
 
-function setVideoEnabled(enabled) {
-    if (!localStream) return;
-    for (const track of localStream.getVideoTracks()) {
-        track.enabled = enabled;
-    }
-}
+// ---------------------------------------------------------------------------------------
+// On clicking the Transcription button, start Jarvis
+// ---------------------------------------------------------------------------------------
+$(document).on("click", "#jarvis-btn", function (e) {
+    startJarvisService();
+});
 
-// ---------------------------------------------------------------------------------------
-// On mute button, which should mute both call audio and Jarvis ASR
-// ---------------------------------------------------------------------------------------
+$(document).on("click", "#jarvis-btn-stop", function (e) {
+    stopJarvisService();
+});
+
 $(document).on("click", "#mute-btn", function (e) {
     if (!muted) {
-        if($(this).hasClass("btn-primary")) {
+        if ($(this).hasClass("btn-primary")) {
             $("#mute-btn").removeClass("btn-primary").addClass("btn-danger");
             $("#mute-btn").tooltip('hide')
                 .attr('data-original-title', 'Unmute')
-                .tooltip('show');         
+                .tooltip('show');
         }
         setAudioEnabled(false);
         muted = true;
     } else {
-        if($(this).hasClass("btn-danger")) {
-            $("#mute-btn").removeClass("btn-danger").addClass("btn-primary");               
+        if ($(this).hasClass("btn-danger")) {
+            $("#mute-btn").removeClass("btn-danger").addClass("btn-primary");
             $("#mute-btn").tooltip('hide')
                 .attr('data-original-title', 'Mute')
-                .tooltip('show');         
+                .tooltip('show');
         }
         setAudioEnabled(true);
         muted = false;
     }
 });
 
-// ---------------------------------------------------------------------------------------
-// On video button
-// ---------------------------------------------------------------------------------------
-$(document).on("click", "#video-btn", function (e) {
-    if (videoEnabled) {
-        if($(this).hasClass("btn-primary")) {
-            $("#video-btn").removeClass("btn-primary").addClass("btn-danger");
-            $("#video-btn").tooltip('hide')
-                .attr('data-original-title', 'Video on')
-                .tooltip('show');         
-        }
-        setVideoEnabled(false);
-        videoEnabled = false;
-    } else {
-        if($(this).hasClass("btn-danger")) {
-            $("#video-btn").removeClass("btn-danger").addClass("btn-primary");               
-            $("#video-btn").tooltip('hide')
-                .attr('data-original-title', 'Video off')
-                .tooltip('show');         
-        }
-        setVideoEnabled(true);
-        videoEnabled = true;
-    }
-});
 
-// ---------------------------------------------------------------------------------------
-// Click on text submit button
-// ---------------------------------------------------------------------------------------
-$(document).on("submit", "#input_form", function (e) {
-    // Prevent reload of page after submitting of form
-    e.preventDefault();
-    let text = $('#input_field').val();
-    console.log("text: " + text);
-
-    socket.emit('nlp_request', {
-        text: text,
-        latencyIndex: latencyTimer.start({name: 'NLP request'})
-    });
-    // Erase input field
-    $('#input_field').val("");
-});

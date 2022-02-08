@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-require('dotenv').config({path: 'env.txt'});
+require('dotenv').config({ path: 'env.txt' });
 
 const defaultRate = 16000;
 const languageCode = 'en-US';
@@ -43,15 +43,15 @@ var asrPkgDef = protoLoader.loadSync(asrProto, protoOptions);
 var jAsr = grpc.loadPackageDefinition(asrPkgDef).nvidia.jarvis.asr;
 
 class ASRPipe {
-    setupASR() {
+    setupASR(config_data) {
         // the Jarvis ASR client
         this.asrClient = new jAsr.JarvisASR(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
                 config: {
                     encoding: jAudio.AudioEncoding.LINEAR_PCM,
-                    sample_rate_hertz: defaultRate,
-                    language_code: languageCode,
+                    sample_rate_hertz: config_data.sampleRateHz,
+                    language_code: config_data.language,
                     max_alternatives: 1,
                     enable_automatic_punctuation: true
                 },
@@ -63,25 +63,25 @@ class ASRPipe {
 
     async mainASR(transcription_cb) {
         this.recognizeStream = this.asrClient.streamingRecognize()
-        .on('data', function(data){
-            if (data.results == undefined || data.results[0] == undefined) {
-                return;
-            }
+            .on('data', function (data) {
+                if (data.results == undefined || data.results[0] == undefined) {
+                    return;
+                }
 
-            // callback sends the transcription results back through the bidirectional socket stream
-            transcription_cb({
-                transcript: data.results[0].alternatives[0].transcript,
-                is_final: data.results[0].is_final
+                // callback sends the transcription results back through the bidirectional socket stream
+                transcription_cb({
+                    transcript: data.results[0].alternatives[0].transcript,
+                    is_final: data.results[0].is_final
+                });
+            })
+            .on('error', (error) => {
+                console.log('Error via streamingRecognize callback');
+                console.log(error);
+            })
+            .on('end', () => {
+                console.log('StreamingRecognize end');
             });
-        })
-        .on('error', (error) => {
-            console.log('Error via streamingRecognize callback');
-            console.log(error);
-        })
-        .on('end', () => {
-            console.log('StreamingRecognize end');
-        });
-    
+
         this.recognizeStream.write(this.firstRequest);
     }
 }

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-require('dotenv').config({path: 'env.txt'});
+require('dotenv').config({ path: 'env.txt' });
 
-const socketIo = require('socket.io');
+const WebSocket = require('ws');
+const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const cors = require('cors');
@@ -25,146 +26,97 @@ const session = require('express-session')({
     secret: "gVkYp3s6",
     resave: true,
     saveUninitialized: true,
-    genid: function(req) {
+    genid: function (req) {
         return uuid.v4();
     }
 });
 const uuid = require('uuid');
-const { PeerServer } = require('peer');
-var peerServer;
-const sharedsession = require("express-socket.io-session");
+// const { ExpressPeerServer } = require('peer');
+//const sharedsession = require("express-socket.io-session");
 
 const ASRPipe = require('./modules/asr');
-const nlp = require('./modules/nlp');
+//const nlp = require('./modules/nlp');
 
 const app = express();
-const port = ( process.env.PORT );
+const port = (process.env.PORT);
 var server;
 var sslkey = './certificates/key.pem';
 var sslcert = './certificates/cert.pem';
 
 
 /**
- * Set up Express Server with CORS and SocketIO
+ * Set up Express Server with CORS and websockets ws
  */
 function setupServer() {
-    const ignoreRegex = RegExp(/^(.)\1{0,}(\.|\?)?\s*$/, 'i');
-
     // set up Express
     app.use(cors());
     app.use(express.static('web')); // ./web is the public dir for js, css, etc.
     app.use(session);
-    app.get('/', function(req, res) {
-         res.sendFile('./web/index.html', { root: __dirname });
+    app.get('/', function (req, res) {
+        res.sendFile('./web/index.html', { root: __dirname });
     });
     server = https.createServer({
         key: fs.readFileSync(sslkey),
         cert: fs.readFileSync(sslcert)
     }, app);
 
-    // Start peer-js server at https://ip:port/peerjs
-    // for negotiating peer-to-peer connections for the video chat.
-    // This has problems in Firefox for some network configurations,
-    // but appears to be more stable in Chrome.
-    // Either way, this does not affect the websocket connection used for
-    // Jarvis, you just won't be able to call a peer.
-    peerServer = PeerServer({
-        port: parseInt(port) + 1,
-        ssl: {
-          key: fs.readFileSync(sslkey),
-          cert: fs.readFileSync(sslcert)
-        },
-        path: '/peerjs'
+    const wss = new WebSocket.Server({ server });
+
+    // Listener, once the client connects to the server socket
+    wss.on('connection', function connection(ws, req) {
+        const ip = req.socket.remoteAddress;
+        console.log('Client connected from %s', ip);
+        let asr = new ASRPipe();
+        ws.on('message', function message(data, isBinary) {
+            // console.log('Received message', data);
+            // console.log('isBinary', isBinary);
+            if (!isBinary) {  // non-binary data will be string start/stop control messages
+                msg_data = JSON.parse(data);
+                console.log({msg_data});
+                if (msg_data.type === "start") {
+                    // Initialize Riva
+                    console.log('Initializing Riva ASR');
+                    asr.setupASR(msg_data);
+                    asr.mainASR(function (result) {
+                        if (result.transcript == undefined) {
+                            ws.send(JSON.stringify({ "type": "started" }));
+                            return;
+                        }
+                        // Log the transcript to console, overwriting non-final results
+                        process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
+                        if (!result.is_final) {
+                            process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
+                            ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
+                        } else {
+                            process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
+                            ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
+                            // TODO: Is the below end message necessary? Confusing explanation in Audiocodecs Reference Guide 
+                            // https://www.audiocodes.com/media/15479/voiceai-gateway-api-reference-guide.pdf (pg. 19):
+                            // In case only a single utterance is recognized per recognition-session, an "end"
+                            // message must be sent immediately after the "recognition" message."
+                            ws.send(JSON.stringify({ "type": "end", "reason": "Recognition complete" }));
+                        }
+                    });
+                    ws.send(JSON.stringify({ "type": "started" }));
+                } else if (msg_data.type === 'stop') {
+                    ws.send(JSON.stringify({ "type": "end", "reason": "ASR service stopped" }));
+                    ws.terminate();
+                }
+            } else {
+                asr.recognizeStream.write({ audio_content: data });
+            }
+        });
+
+        ws.on('close', (reason) => {
+            console.log('Client at %s disconnected.', ip);
+        });
     });
 
-    io = socketIo(server);
-    io.use(sharedsession(session, {autoSave:true}));
+
+
     server.listen(port, () => {
         console.log('Running server on port %s', port);
     });
-
-    // Listener, once the client connects to the server socket
-    io.on('connect', (socket) => {
-        console.log('Client connected from %s', socket.handshake.address);
-
-        // Initialize Jarvis
-        console.log('Initializing Jarvis ASR');
-        socket.handshake.session.asr = new ASRPipe();
-        socket.handshake.session.asr.setupASR();
-        socket.handshake.session.asr.mainASR(function(result){
-            var nlpResult;
-            if (result.transcript == undefined) {
-                return;
-            }
-            // Log the transcript to console, overwriting non-final results
-            process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
-            if (!result.is_final) {
-                process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
-            } else {
-                process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
-            }
-            socket.handshake.session.lastLineLength = result.transcript.length;
-
-            // Don't return the short "Oo?" and "A?" kind of results
-            if (ignoreRegex.test(result.transcript)) {
-                return;
-            }
-
-            // Final transcripts also get sent to NLP before returning
-            if (result.is_final) {
-                nlp.getJarvisNer(result.transcript)
-                .then(function(nerResult) {
-                    result.annotations = nerResult;
-                    socket.emit('transcript', result);
-                }, function(error) {
-                    result.annotations = {err: error};
-                    socket.emit('transcript', result);
-                });
-            } else {
-                socket.emit('transcript', result);
-            }
-        });
-
-        // incoming audio
-        socket.on('audio_in', (data) => {
-            socket.handshake.session.asr.recognizeStream.write({audio_content: data});
-        });
-
-        // NLP-only request
-        socket.on('nlp_request', (data) => {
-            nlp.getJarvisNer(data.text)
-            .then(function(nerResult) {
-                socket.emit('transcript', {
-                    transcript: data.text,
-                    is_final: true,
-                    annotations: nerResult,
-                    latencyIndex: data.latencyIndex
-                });
-            }, function(error) {
-                socket.emit('transcript', {transcript: data.text, annotations: {err: error}, latencyIndex: data.latencyIndex});
-            });
-        });
-
-        // Get NLP configuration
-        socket.on('get_nlp_config', () => {
-            socket.emit('nlp_config', {ner_entities: process.env.JARVIS_NER_ENTITIES, concept_map: process.env.CONCEPT_MAP});
-        });
-
-        socket.on('peerjs_id', (peerjs_id) => {
-            socket.handshake.session.peerjs_id = peerjs_id;
-            console.log('Client at %s has PeerJS ID %s', socket.handshake.address, peerjs_id);
-        });
-
-        socket.on('disconnect', (reason) => {
-            console.log('Client at %s disconnected. Reason: ', socket.handshake.address, reason);
-        });
-    });
 };
-
-process.on('SIGINT', function() {
-    console.log("Caught interrupt signal, cleaning up");
-
-    process.exit();
-});
 
 setupServer();
