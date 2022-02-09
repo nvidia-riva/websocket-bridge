@@ -1,6 +1,6 @@
-# Riva Contact Audiocodecs Integration
+# Riva Contact AudioCodes Integration
 
-This demo integrates the Audiocodecs VoiceAI Gateway API with Riva. 
+This demo integrates the AudioCodes VoiceAI Gateway API with Riva. 
 
 The most significant modification from the Riva Contact demo was removing socket.io and replacing with websockets ws.
 
