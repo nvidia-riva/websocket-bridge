@@ -71,7 +71,7 @@ function startJarvisService() {
     latencyTimer = new LatencyTimer();
 
     if (websocket == null || websocket.readyState !== WebSocket.OPEN) {
-        websocket = new WebSocket('wss://localhost:8009/');
+        websocket = new WebSocket('wss://' + location.host);
 
         let audioInput = audio_context.createMediaStreamSource(localStream);
         let bufferSize = 4096;
