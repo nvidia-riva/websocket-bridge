@@ -16,18 +16,13 @@
   "dependencies": {
     "@grpc/proto-loader": "^0.5.4",
     "bluebird": "^3.7.2",
-    "connect-redis": "^5.0.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
-    "express-socket.io-session": "^1.3.5",
     "google-protobuf": "^3.12.2",
     "grpc": "^1.24.3",
-    "peer": "^0.5.3",
-    "python-bridge": "^1.1.0",
-    "redis": "^3.0.2",
-    "socket.io": "^2.3.0",
+    "uuid": "^8.3.2",
     "ws": "^8.5.0"
   }
 }
