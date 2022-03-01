@@ -20,22 +20,9 @@ const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
-const cors = require('cors');
 const express = require('express');
-const session = require('express-session')({
-    secret: "gVkYp3s6",
-    resave: true,
-    saveUninitialized: true,
-    genid: function (req) {
-        return uuid.v4();
-    }
-});
-const uuid = require('uuid');
-// const { ExpressPeerServer } = require('peer');
-//const sharedsession = require("express-socket.io-session");
 
 const ASRPipe = require('./modules/asr');
-//const nlp = require('./modules/nlp');
 
 const app = express();
 const port = (process.env.PORT);
@@ -49,9 +36,7 @@ var sslcert = './certificates/cert.pem';
  */
 function setupServer() {
     // set up Express
-    app.use(cors());
     app.use(express.static('web')); // ./web is the public dir for js, css, etc.
-    app.use(session);
     app.get('/', function (req, res) {
         res.sendFile('./web/index.html', { root: __dirname });
     });

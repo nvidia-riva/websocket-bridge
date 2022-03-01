@@ -1,7 +1,7 @@
 {
-  "name": "jarvis-contact",
+  "name": "riva-websocket-bridge",
   "version": "1.0.0",
-  "description": "Peer-to-peer video chat, with real-time transcription and annotation backed by NVIDIA Jarvis",
+  "description": "Bridge service for mapping from Websockets ASR requests to Riva gRPC",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,20 +9,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab-master.nvidia.com/cparisien/jarvis-contact.git"
+    "url": "https://gihub.com/nvidia-riva/websockets-bridge"
   },
   "author": "Chris Parisien",
   "license": "Apache-2.0",
   "dependencies": {
     "@grpc/proto-loader": "^0.5.4",
     "bluebird": "^3.7.2",
-    "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "express-session": "^1.17.1",
     "google-protobuf": "^3.12.2",
     "grpc": "^1.24.3",
-    "uuid": "^8.3.2",
     "ws": "^8.5.0"
   }
 }

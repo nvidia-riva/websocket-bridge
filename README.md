@@ -6,7 +6,7 @@ The most significant modification from the Riva Contact demo was removing socket
 
 In its current version, the application has been modified to only support ASR. Peer-to-peer functionality has also been removed.
 
-To run locally, first edit `env.txt` so that `JARVIS_API_URL` is pointing to a running Riva instance with ASR enabled. Then
+To run locally, first edit `env.txt` so that `RIVA_API_URL` is pointing to a running Riva instance with ASR enabled. Then
 
 ```bash
 $ cd riva-contact

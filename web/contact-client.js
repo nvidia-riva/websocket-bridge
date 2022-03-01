@@ -21,7 +21,7 @@ var username = 'Test_speaker_' + id.toString();
 var peer_username;
 var localStream;
 var sampleRate;
-var jarvisRunning = false;
+var rivaRunning = false;
 
 var displacy;
 var latencyTimer;
@@ -60,14 +60,14 @@ class LatencyTimer {
 }
 
 // ---------------------------------------------------------------------------------------
-// Start Jarvis, whether triggered locally or by a message from peer
+// Start Riva, whether triggered locally or by a message from peer
 // ---------------------------------------------------------------------------------------
-function startJarvisService() {
-    if (jarvisRunning) {
+function startRivaService() {
+    if (rivaRunning) {
         return;
     }
-    document.getElementById('jarvis-btn').disabled = true;
-    document.getElementById('jarvis-btn-stop').removeAttribute("disabled");
+    document.getElementById('riva-btn').disabled = true;
+    document.getElementById('riva-btn-stop').removeAttribute("disabled");
     latencyTimer = new LatencyTimer();
 
     if (websocket == null || websocket.readyState !== WebSocket.OPEN) {
@@ -88,7 +88,7 @@ function startJarvisService() {
             console.log("Web socket closed: '" + JSON.stringify(result) + "'");
             audioInput.disconnect();
             recorder.disconnect();
-            jarvisRunning = false;
+            rivaRunning = false;
             //websocket.close();
         });
 
@@ -97,7 +97,7 @@ function startJarvisService() {
             console.error(err.message);
         });
 
-        // Transcription results streaming back from Jarvis
+        // Transcription results streaming back from Riva
         websocket.addEventListener('message', function (result) {
             result_data = JSON.parse(result.data);
 
@@ -134,13 +134,13 @@ function startJarvisService() {
                 audioInput.connect(recorder);
                 // connect our recorder to the previous destination
                 recorder.connect(audio_context.destination);
-                jarvisRunning = true;
+                rivaRunning = true;
 
                 console.log('Streaming audio to server');
 
                 document.getElementById('input_field').setAttribute('placeholder', 'Enter some text to annotate, or start speaking');
                 var connArea = document.getElementById('connection_status');
-                toastr.success('Jarvis is connected.');
+                toastr.success('Riva is connected.');
             }
             else if (result_data.type === "end") {
                 console.log(result.data);
@@ -168,14 +168,14 @@ function startJarvisService() {
 
 }
 
-function stopJarvisService() {
+function stopRivaService() {
     console.log("Stop ASR websocket connection");
-    document.getElementById('jarvis-btn-stop').disabled = true;
-    document.getElementById('jarvis-btn').removeAttribute("disabled");
+    document.getElementById('riva-btn-stop').disabled = true;
+    document.getElementById('riva-btn').removeAttribute("disabled");
     if (websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify({ "type": "stop" }));
     }
-    jarvisRunning = false;
+    rivaRunning = false;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -249,9 +249,9 @@ $(document).ready(function () {
         }
     });
 
-    // Allow us to launch Jarvis with only the local speaker
-    document.getElementById('jarvis-btn').removeAttribute("disabled");
-    document.getElementById('jarvis-btn-stop').disabled = true;
+    // Allow us to launch Riva with only the local speaker
+    document.getElementById('riva-btn').removeAttribute("disabled");
+    document.getElementById('riva-btn-stop').disabled = true;
 
 });
 
@@ -263,14 +263,14 @@ function setAudioEnabled(enabled) {
 }
 
 // ---------------------------------------------------------------------------------------
-// On clicking the Transcription button, start Jarvis
+// On clicking the Transcription button, start Riva
 // ---------------------------------------------------------------------------------------
-$(document).on("click", "#jarvis-btn", function (e) {
-    startJarvisService();
+$(document).on("click", "#riva-btn", function (e) {
+    startRivaService();
 });
 
-$(document).on("click", "#jarvis-btn-stop", function (e) {
-    stopJarvisService();
+$(document).on("click", "#riva-btn-stop", function (e) {
+    stopRivaService();
 });
 
 $(document).on("click", "#mute-btn", function (e) {

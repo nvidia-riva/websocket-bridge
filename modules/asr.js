@@ -21,11 +21,11 @@ const languageCode = 'en-US';
 
 // Because of a quirk in proto-loader, we use static code gen to get the AudioEncoding enum,
 // and dynamic loading for the rest.
-const jAudio = require('./protos/src/jarvis_proto/audio_pb');
+const rAudio = require('./protos/riva/proto/riva_audio_pb');
 
 const { Transform } = require('stream');
 
-var asrProto = 'src/jarvis_proto/jarvis_asr.proto';
+var asrProto = 'riva/proto/riva_asr.proto';
 var protoRoot = __dirname + '/protos/';
 var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
@@ -40,16 +40,15 @@ var protoOptions = {
 };
 var asrPkgDef = protoLoader.loadSync(asrProto, protoOptions);
 
-var jAsr = grpc.loadPackageDefinition(asrPkgDef).nvidia.jarvis.asr;
+var rasr = grpc.loadPackageDefinition(asrPkgDef).nvidia.riva.asr;
 
 class ASRPipe {
     setupASR(config_data) {
-        // the Jarvis ASR client
-        this.asrClient = new jAsr.JarvisASR(process.env.JARVIS_API_URL, grpc.credentials.createInsecure());
+        this.asrClient = new rasr.RivaSpeechRecognition(process.env.RIVA_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
                 config: {
-                    encoding: jAudio.AudioEncoding.LINEAR_PCM,
+                    encoding: rAudio.AudioEncoding.LINEAR_PCM,
                     sample_rate_hertz: config_data.sampleRateHz,
                     language_code: config_data.language,
                     max_alternatives: 1,
