@@ -1,17 +1,6 @@
-/**
- * Copyright 2020 NVIDIA Corporation. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: MIT
  */
 
 const id = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -23,7 +12,6 @@ var localStream;
 var sampleRate;
 var rivaRunning = false;
 
-var displacy;
 var latencyTimer;
 var scrollToBottomTime = 500;
 var muted = false;
@@ -196,7 +184,6 @@ function showASRTranscript(speaker, annotations, text) {
         nameContainer.innerHTML = "<p class=\"speaker-other mb-0 mt-1\"><small><strong>" + speaker + ":</strong></small></p>";
     }
 
-    //displacy.render(textContainer, text, annotations.ner, annotations.ents);
     textContainer.innerHTML = "<p>" + text + "</p>";
 
     $("#transcription_area").append(nameContainer);
@@ -228,9 +215,6 @@ function requestLocalAudio(callbacks) {
 $(document).ready(function () {
     // Activate tooltips
     $("body").tooltip({ selector: '[data-mdb-toggle=tooltip]' });
-
-    // Start DisplaCy for the NER rendering
-    //displacy = new displaCyENT('http://localhost:8000', {})
 
     /**
      * Request browser audio and video, and show the local stream
