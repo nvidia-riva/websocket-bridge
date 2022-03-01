@@ -34,8 +34,8 @@ docker build -t riva-websocket .
 For development purposes, building and running locally may be preferred. Using node16 or later, follow standard node.js best practices:
 
 ```bash
-$ npm install
-$ npm run start
+npm install
+npm run start
 ```
 
 This will launch the application at `https://localhost:8009` with the default configuration.
