@@ -1,23 +1,40 @@
-# Riva Contact AudioCodes Integration
+# Riva Websocket Bridge
 
-This demo integrates the AudioCodes VoiceAI Gateway API with Riva. 
+This is a bridge/proxy server intended to be deployed as a sidecar service alongside Riva server.
+It implements a Websocket-based Speech Recognition API that is compatible with [AudioCodes VoiceAI Connect]https://www.audiocodes.com/solutions-products/voiceai/voiceai-connect). 
 
-The most significant modification from the Riva Contact demo was removing socket.io and replacing with websockets ws.
+## Deployment
+Running this bridge in a containerized environment is the recommended deployment methodology. 
 
-In its current version, the application has been modified to only support ASR. Peer-to-peer functionality has also been removed.
+### Configuration
+By default, the bridge will listen on port 8009 and proxy traffic to Riva server running at grpc://localhost:50051.
+This behavior can be overridden either by modifying the `env.txt` file and rebuilding the docker image (see *Build*
+section below) or by setting `RIVA_API_URL` and `BRIDGE_PORT` environment variables at deployment time. For example,
+to deploy the bridge connecting to a riva server running at `localhost:1234` and serve on port `8888`:
 
-To run locally, first edit `env.txt` so that `RIVA_API_URL` is pointing to a running Riva instance with ASR enabled. Then
+```
+docker run -d -p 8888:8888 -e RIVA_API_URL=localhost:1234 -e BRIDGE_PORT=8888 nvcr.io/nvidia/riva/websocket-bridge:latest
+```
+
+## Build
+
+### Docker
+Docker builds are preferred and most reliable. To build the docker image, simply run
+```
+docker build -t riva-websocket .
+```
+
+### Local
+For development purposes, building and running locally may be preferred. Follow standard node.js best practices:
 
 ```bash
-$ cd riva-contact
 $ npm install
 $ npm run start
 ```
 
-This will launch the application at `https://localhost:8009/`
+This will launch the application at `https://localhost:8009` with the default configuration.
 
-### Authors
-- Sunil Kumar Jang Bahadur (sjangbahadur@nvidia.com) 
-- Chris Pang (christopherp@nvidia.com)
 
+## License
+This code is MIT-licensed. See LICENSE file for full details.
 
