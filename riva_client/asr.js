@@ -47,6 +47,7 @@ class ASRPipe {
             }
         };
         this.numCharsPrinted = 0;
+        return true;
     }
 
     async mainASR(transcription_cb) {

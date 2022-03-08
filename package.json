@@ -4,7 +4,7 @@
   "description": "Bridge service for mapping from Websockets ASR requests to Riva gRPC",
   "main": "server.js",
   "scripts": {
-    "test": "jest --config ./jest.config.json",
+    "test": "jest --config ./jest.config.ts",
     "test:watch": "npm run test -- --watch",
     "start": "node server.js"
   },
@@ -15,16 +15,22 @@
   "author": "NVIDIA",
   "license": "Apache-2.0",
   "dependencies": {
+    "@babel/polyfill": "^7.12.1",
     "@grpc/proto-loader": "^0.5.4",
     "bluebird": "^3.7.2",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "google-protobuf": "^3.12.2",
     "grpc": "^1.24.3",
+    "regenerator-runtime": "^0.13.9",
     "ws": "^8.5.0",
     "wscat": "^5.1.0"
   },
   "devDependencies": {
-    "jest": "^27.5.1"
+    "@babel/preset-env": "^7.16.11",
+    "babel-jest": "^27.5.1",
+    "jest": "^27.5.1",
+    "jest-websocket-mock": "^2.3.0",
+    "ts-node": "^10.6.0"
   }
 }
