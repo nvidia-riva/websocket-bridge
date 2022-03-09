@@ -164,6 +164,8 @@ function stopRivaService() {
         websocket.send(JSON.stringify({ "type": "stop" }));
     }
     rivaRunning = false;
+    //if we dont close here will continue to attempt to stream mic data to a server not ready to receive
+    websocket.close();
 }
 
 // ---------------------------------------------------------------------------------------
