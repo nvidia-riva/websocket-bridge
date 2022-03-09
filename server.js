@@ -11,7 +11,9 @@ const fs = require('fs');
 const https = require('https');
 const express = require('express');
 
-const ASRPipe = require('./modules/asr');
+const { audioCodesControlMessage, wsServerConnection, wsServerClose }  = require('./modules/audiocodes');
+
+const ASRPipe = require('./riva_client/asr');
 
 const app = express();
 const port = (process.env.PORT);
@@ -34,58 +36,15 @@ function setupServer() {
         cert: fs.readFileSync(sslcert)
     }, app);
 
-    const wss = new WebSocket.Server({ server });
+    const wsServer = new WebSocket.Server({ server });
 
     // Listener, once the client connects to the server socket
-    wss.on('connection', function connection(ws, req) {
-        const ip = req.socket.remoteAddress;
-        console.log('Client connected from %s', ip);
-        let asr = new ASRPipe();
-        ws.on('message', function message(data, isBinary) {
-            // console.log('Received message', data);
-            // console.log('isBinary', isBinary);
-            if (!isBinary) {  // non-binary data will be string start/stop control messages
-                msg_data = JSON.parse(data);
-                console.log({msg_data});
-                if (msg_data.type === "start") {
-                    // Initialize Riva
-                    console.log('Initializing Riva ASR');
-                    asr.setupASR(msg_data);
-                    asr.mainASR(function (result) {
-                        if (result.transcript == undefined) {
-                            ws.send(JSON.stringify({ "type": "started" }));
-                            return;
-                        }
-                        // Log the transcript to console, overwriting non-final results
-                        process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
-                        if (!result.is_final) {
-                            process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
-                            ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
-                        } else {
-                            process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
-                            ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
-                            // TODO: Is the below end message necessary? Confusing explanation in Audiocodecs Reference Guide 
-                            // https://www.audiocodes.com/media/15479/voiceai-gateway-api-reference-guide.pdf (pg. 19):
-                            // In case only a single utterance is recognized per recognition-session, an "end"
-                            // message must be sent immediately after the "recognition" message."
-                            ws.send(JSON.stringify({ "type": "end", "reason": "Recognition complete" }));
-                        }
-                    });
-                    ws.send(JSON.stringify({ "type": "started" }));
-                } else if (msg_data.type === 'stop') {
-                    ws.send(JSON.stringify({ "type": "end", "reason": "ASR service stopped" }));
-                    ws.terminate();
-                }
-            } else {
-                asr.recognizeStream.write({ audio_content: data });
-            }
-        });
-
-        ws.on('close', (reason) => {
-            console.log('Client at %s disconnected.', ip);
-        });
+    wsServer.on('connection', function connection(ws, req) {
+        wsServerConnection(ws, req);
     });
-
+    wsServer.on('close', function close(reason) {
+        wsServerClose(reason)
+    });
 
 
     server.listen(port, () => {
@@ -94,3 +53,4 @@ function setupServer() {
 };
 
 setupServer();
+
