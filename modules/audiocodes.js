@@ -13,11 +13,11 @@ const ASRPipe = require('../riva_client/asr');
  *
  */
 
-const stateOf = {
+const stateOf = Object.freeze({
     UNDEFINED: 'undefined',
     STARTED: 'started',
     STOPPED: 'stopped',
-};
+});
 
 
 function transcription_cb(result, ws) {
@@ -29,7 +29,7 @@ function transcription_cb(result, ws) {
     process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
     if (!result.is_final) {
         process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
-            ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
+        ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
     } else {
         process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
         ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
@@ -78,17 +78,18 @@ function wsServerConnection(ws, req) {
     let ws_state = stateOf.UNDEFINED;
     console.log('Client connected from %s', ip);
 
-    ws.on('message', function message(data, isBinary) {
+    ws.on('message', async function message(data, isBinary) {
         if (!isBinary) {  // non-binary data will be string start/stop control messages
             console.log("control message received");
-            ws_state = audioCodesControlMessage(data, asr, ws);
+            ws_state = await  audioCodesControlMessage(data, asr, ws);
+
             console.log(ws_state);
 
         } else {
           if(ws_state == stateOf.STARTED) {
               asr.recognizeStream.write({ audio_content: data });
             } else {
-                console.log("Connection in invalid state!!");
+                console.log("Received binary stream on connection in invalid state - send start message to begin stream");
             }
         }
     });

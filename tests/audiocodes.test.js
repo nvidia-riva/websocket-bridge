@@ -33,7 +33,7 @@ describe('audioCodes protocol impl test suite', () => {
         let asr = new ASRPipe();
         let ws = new WebSocket('wss://localhost:8009');
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
-        expect(ws.getMessages()[0]).toBe('{"type":"started"}', '{"type":"started"}');
+        expect(ws.getMessages()[0]).toBe('{"type":"started"}', '{"type":"started"}f');
     });
 
 
