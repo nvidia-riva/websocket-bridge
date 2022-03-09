@@ -32,15 +32,20 @@ var asrPkgDef = protoLoader.loadSync(asrProto, protoOptions);
 var rasr = grpc.loadPackageDefinition(asrPkgDef).nvidia.riva.asr;
 
 class ASRPipe {
-    setupASR(config_data) {
+
+    setupASR(sampleRateHz = 1600,
+             languageCode ='en-US',
+             encoding = rAudio.AudioEncoding.LINEAR_PCM,
+             maxAlts = 1,
+             punctuate = true)   {
         this.asrClient = new rasr.RivaSpeechRecognition(process.env.RIVA_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
                 config: {
-                    encoding: rAudio.AudioEncoding.LINEAR_PCM,
-                    sample_rate_hertz: config_data.sampleRateHz,
-                    language_code: config_data.language,
-                    max_alternatives: 1,
+                    encoding: encoding,
+                    sample_rate_hertz: sampleRateHz,
+                    language_code: languageCode,
+                    max_alternatives: maxAlts,
                     enable_automatic_punctuation: true
                 },
                 interim_results: true

@@ -23,6 +23,7 @@ const stateOf = {
 function transcription_cb(result, ws) {
     if (result.transcript == undefined) {
         ws.send(JSON.stringify({ "type": "started" }));
+        return;
     }
     // Log the transcript to console, overwriting non-final results
     process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
@@ -41,9 +42,9 @@ function transcription_cb(result, ws) {
  */
 
 async function audioCodesControlMessage(data, asr, ws) {
-    msg_data = JSON.parse(data);
+    let msg_data = JSON.parse(data);
     if (msg_data.type === "start") {
-        asr.setupASR(msg_data);
+        asr.setupASR(msg_data.sampleRateHz, msg_data.language);
 
         try {
             asr.mainASR(function transcription_cbh(result) { transcription_cb(result, ws) });

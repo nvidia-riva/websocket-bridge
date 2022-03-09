@@ -1,14 +1,13 @@
+import 'regenerator-runtime/runtime'
+const { audioCodesControlMessage, wsServerConnection, wsServerClose } = require('../modules/audiocodes');
+import ASRPipe from '../riva_client/asr';
+import WebSocket from 'ws';
 
-// const { audioCodesControlMessage, wsServerConnection, wsServerClose } = require('../modules/audiocodes');
-// const ASRPipe = require('../riva_client/asr');
-// import WS from 'ws';
-// import WebSocket from 'ws';
-// import 'regenerator-runtime/runtime'
 
 // beforeAll(async () => {
 //     console.log("before each - start");
 //     // create a WS instance, listening on port 1234 on localhost
-//     const server = new WS("ws://localhost:1234");
+//     const server = new WS("wss://localhost:8009");
 //     console.log("before each - server");
 //     await server.connected;
 //     console.log("before each - connected");
@@ -17,29 +16,35 @@
 // });
 
 
-// describe('audioCodes', () => {
+jest.mock('../riva_client/asr');
+jest.mock('ws');
 
-//     test('start message', (done) => {
-//         var data = {
-//             "type": "start",
-//             "language": "en-US",
-//             "format": "raw",
-//             "encoding": "LINEAR16",
-//             "sampleRateHz": 1600
-//         };
-//         console.log("start message");
-//         let asr = new ASRPipe();
-//         audioCodesControlMessage(JSON.stringify(data), asr, ws);
+describe('audioCodes protocol impl test suite', () => {
+
+    test('start message', () => {
+        var data = {
+            "type": "start",
+            "language": "en-US",
+            "format": "raw",
+            "encoding": "LINEAR16",
+            "sampleRateHz": 1600
+        };
+
+        let asr = new ASRPipe();
+        let ws = new WebSocket('wss://localhost:8009');
+        audioCodesControlMessage(JSON.stringify(data), asr, ws);
+        expect(ws.getMessages()[0]).toBe('{"type":"started"}', '{"type":"started"}');
+    });
 
 
-//     })
-// });
+    test('stop message', async () => {
+        var data = {
+            "type": "stop",
+        };
+        let asr = new ASRPipe();
+        let ws = new WebSocket('wss://localhost:8009');
+        audioCodesControlMessage(JSON.stringify(data), asr, ws);
+        expect(ws.getMessages()[0]).toBe('{"type":"end","reason":"RIVA service stopped"}');
+    });
 
-// test('stop message', async () => {
-//     var data = {
-//         "type": "stop",
-//     };
-//     let asr = new ASRPipe();
-//     let ws = new WebSocket();
-//     await audioCodesControlMessage(JSON.stringify(data), asr, ws);s
-// })
+});
