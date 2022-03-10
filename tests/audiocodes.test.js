@@ -19,7 +19,7 @@ import WebSocket from 'ws';
 jest.mock('../riva_client/asr');
 jest.mock('ws');
 
-describe('audioCodes protocol impl test suite', () => {
+describe('audioCodes protocol impl test suite - client messages', () => {
 
     test('start message', () => {
         var data = {
@@ -46,5 +46,19 @@ describe('audioCodes protocol impl test suite', () => {
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
         expect(ws.getMessages()[0]).toBe('{"type":"end","reason":"RIVA service stopped"}');
     });
+
+    test('binary message - after start', async () => {
+        // send a binary frame.
+
+    }
+
+    test('binary message - before start', async () => {
+        // send a binary frame.
+
+    }
+
+    test('binary message - after stop', async () => {
+        // send a binary frame.
+    }
 
 });
