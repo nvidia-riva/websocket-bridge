@@ -23,6 +23,7 @@
     "google-protobuf": "^3.12.2",
     "grpc": "^1.24.3",
     "regenerator-runtime": "^0.13.9",
+    "wavefile": "^11.0.0",
     "ws": "^8.5.0",
     "wscat": "^5.1.0"
   },

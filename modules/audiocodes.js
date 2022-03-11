@@ -21,6 +21,13 @@ const stateOf = Object.freeze({
 
 
 function transcription_cb(result, ws) {
+    if(result.error) {
+        console.log("endpoint failure");
+        //These are generally fatal - shut down the ws.
+        ws.close();
+        return;
+    }
+
     if (result.transcript == undefined) {
         ws.send(JSON.stringify({ "type": "started" }));
         return;
@@ -28,10 +35,10 @@ function transcription_cb(result, ws) {
     // Log the transcript to console, overwriting non-final results
     process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
     if (!result.is_final) {
-        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
+        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
         ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
     } else {
-        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
+        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
         ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
         ws.send(JSON.stringify({ "type": "end", "reason": "Recognition complete" }));
     }
@@ -71,6 +78,7 @@ async function audioCodesControlMessage(data, asr, ws) {
  * Callback for 'connection' events for websocket server support audiocodes voicegateway api
  *
  */
+const fs = require('fs');
 
 function wsServerConnection(ws, req) {
     const ip = req.socket.remoteAddress;
@@ -82,12 +90,17 @@ function wsServerConnection(ws, req) {
         if (!isBinary) {  // non-binary data will be string start/stop control messages
             console.log("control message received");
             ws_state = await  audioCodesControlMessage(data, asr, ws);
-
-            console.log(ws_state);
+            console.log("ws_socket->state : " + ws_state);
 
         } else {
           if(ws_state == stateOf.STARTED) {
               asr.recognizeStream.write({ audio_content: data });
+              fs.appendFile('sampleaudio', data, err => {
+                  if(err) {
+                      console.log("bad capture from mic");
+                      return
+                  }
+              });
             } else {
                 console.log("Received binary stream on connection in invalid state - send start message to begin stream");
             }
@@ -99,6 +112,7 @@ function wsServerConnection(ws, req) {
     });
     ws.on('close', function close() {
         console.log("closing connection for %s", ip);
+        ws.close();
     });
 
 };

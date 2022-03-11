@@ -70,7 +70,9 @@ class ASRPipe {
             })
             .on('error', (error) => {
                 console.log('Error via streamingRecognize callback');
-                console.log(error);
+                transcription_cb({
+                    error: error
+                });
             })
             .on('end', () => {
                 console.log('StreamingRecognize end');
