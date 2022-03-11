@@ -95,12 +95,13 @@ function wsServerConnection(ws, req) {
         } else {
           if(ws_state == stateOf.STARTED) {
               asr.recognizeStream.write({ audio_content: data });
-              fs.appendFile('sampleaudio', data, err => {
-                  if(err) {
-                      console.log("bad capture from mic");
-                      return
-                  }
-              });
+              // may want to put this behind a feature flag to capture audio through bridge
+              // fs.appendFile('sampleaudio', data, err => {
+              //     if(err) {
+              //         console.log("bad capture from mic");
+              //         return
+              //     }
+              // });
             } else {
                 console.log("Received binary stream on connection in invalid state - send start message to begin stream");
             }
