@@ -1,5 +1,10 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: MIT
+ */
+
 import 'regenerator-runtime/runtime'
-const { audioCodesControlMessage, wsServerConnection, wsServerClose } = require('../modules/audiocodes');
+const { audioCodesControlMessage, transcription_cb, wsServerConnection, serverMessage, wsServerClose, stateOf} = require('../modules/audiocodes');
 import ASRPipe from '../riva_client/asr';
 import WebSocket from 'ws';
 
@@ -19,7 +24,7 @@ import WebSocket from 'ws';
 jest.mock('../riva_client/asr');
 jest.mock('ws');
 
-describe('audioCodes protocol impl test suite', () => {
+describe('audioCodes protocol impl test suite - client messages', () => {
 
     test('start message', () => {
         var data = {
@@ -33,7 +38,7 @@ describe('audioCodes protocol impl test suite', () => {
         let asr = new ASRPipe();
         let ws = new WebSocket('wss://localhost:8009');
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
-        expect(ws.getMessages()[0]).toBe('{"type":"started"}', '{"type":"started"}f');
+        expect(ws.getMessages()[0]).toBe('{"type":"started"}');
     });
 
 
@@ -44,7 +49,110 @@ describe('audioCodes protocol impl test suite', () => {
         let asr = new ASRPipe();
         let ws = new WebSocket('wss://localhost:8009');
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
-        expect(ws.getMessages()[0]).toBe('{"type":"end","reason":"RIVA service stopped"}');
+        expect(ws.getMessages()[0]).toBe('{"type":"end","reason":"stop by client"}');
+    });
+
+    test('start message server', async () => {
+
+        var data = {
+            "type": "start",
+            "language": "en-US",
+            "format": "raw",
+            "encoding": "LINEAR16",
+            "sampleRateHz": 1600
+        };
+
+        let asr = new ASRPipe();
+        let ws = new WebSocket('wss://localhost:8009');
+        let ws_state = stateOf.UNDEFINED;
+
+        ws_state = await serverMessage(JSON.stringify(data), false, ws, ws_state, asr);
+        expect(ws_state).toBe(stateOf.STARTED);
+
+    });
+
+     test('binary message - after start', async () => {
+        var data = {
+            "type": "start",
+            "language": "en-US",
+            "format": "raw",
+            "encoding": "LINEAR16",
+            "sampleRateHz": 1600
+        };
+
+        let asr = new ASRPipe();
+        let ws = new WebSocket('wss://localhost:8009');
+        let ws_state = stateOf.UNDEFINED;
+
+        ws_state = await serverMessage(JSON.stringify(data), false, ws, ws_state, asr);
+        expect(ws_state).toBe(stateOf.STARTED);
+        data = Buffer.alloc(4096);
+        ws_state = await serverMessage(data, true, ws, ws_state, asr);
+        expect(ws_state).toBe(stateOf.STARTED);
+
+     });
+
+    test('binary message - before start', async () => {
+        let ws = new WebSocket('wss://localhost:8009') ;
+        let asr = new ASRPipe();
+        let data = Buffer.alloc(4096);
+        let ws_state = stateOf.UNDEFINED;
+        ws_state = await serverMessage(data, true, ws, ws_state, asr);
+        expect(ws_state).not.toBe(stateOf.STARTED);
+    });
+
+    test('binary message - after stop', async () => {
+    var data = {
+            "type": "start",
+            "language": "en-US",
+            "format": "raw",
+            "encoding": "LINEAR16",
+            "sampleRateHz": 1600
+        };
+
+        let asr = new ASRPipe();
+        let ws = new WebSocket('wss://localhost:8009');
+        let ws_state = stateOf.UNDEFINED;
+
+        ws_state = await serverMessage(JSON.stringify(data), false, ws, ws_state, asr);
+        expect(ws_state).toBe(stateOf.STARTED);
+        data = Buffer.alloc(4096);
+        ws_state = await serverMessage(data, true, ws, ws_state, asr);
+        expect(ws_state).toBe(stateOf.STARTED);
+        data = { "type": "stop" };
+        ws_state = await serverMessage(JSON.stringify(data), false, ws ,ws_state, asr);
+        expect(ws_state).toBe(stateOf.STOPPED);
+        ws_state = await serverMessage(JSON.stringify(data), true, ws, ws_state, asr);
+        expect(ws_state).not.toBe(stateOf.STARTED);
+    });
+
+
+    test('riva transcription callback  - initial', () => {
+
+        let ws = new WebSocket('wss://localhost:8009');
+        let result = { 'transcript' : undefined};
+        transcription_cb(result, ws);
+        expect(ws.getMessages()[0]).toBe('{"type":"started"}');
+    });
+
+    test('riva transcription callback - started ongoing', () => {
+
+        let ws = new WebSocket('wss://localhost:8009');
+        let result = { 'transcript' : "working transcript"};
+        transcription_cb(result, ws);
+        let output =  { "type": "hypothesis", "alternatives": [{ "text": result.transcript }] };;
+        expect(ws.getMessages()[0]).toBe(JSON.stringify(output));
+    });
+
+    test('riva transcription callback - last', () => {
+
+        let ws = new WebSocket('wss://localhost:8009');
+        let result = { 'transcript' : "working transcript", 'is_final' : true};
+        transcription_cb(result, ws);
+        let output =  { "type": "recognition", "alternatives": [{ "text": result.transcript }] };
+
+        expect(ws.getMessages()[0]).toBe(JSON.stringify(output));
+        expect(ws.getMessages()[1]).toBe(JSON.stringify({"type" : "end", "reason": "Recognition complete"}));
     });
 
 });
