@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-
 /*
  * Audio codes specific messages parsing, from client->server
  * start, stop
@@ -123,29 +122,6 @@ function wsServerConnection(ws, req) {
     ws.on('message', async function serverMessage_cl(data, isBinary) {
         ws_state = await serverMessage(data, isBinary, ws, ws_state, asr);
     });
-    // ws.on('message', async function serverMessage(data, isBinary) {
-
-    //     if (!isBinary) {  // non-binary data will be string start/stop control messages
-    //         ws_state = await  audioCodesControlMessage(data, asr, ws);
-    //         console.log("ws_socket->state : " + ws_state);
-    //         return ws_state;
-    //     } else {
-    //         if(ws_state == stateOf.STARTED) {
-    //             asr.recognizeStream.write({ audio_content: data });
-    //             // may want to put this behind a feature flag to capture audio through bridge
-    //             // fs.appendFile('sampleaudio', data, err => {
-    //             //     if(err) {
-    //             //         console.log("bad capture from mic");
-    //             //         return
-    //             //         }
-    //             // });
-    //         } else {
-    //             console.log("Received binary stream on connection in invalid state " + ws_state + "  - send start message to begin stream");
-
-    //         }
-
-    //     }
-    // });
 
     ws.on('error', function error(data, code) {
         console.log("error: %s", code);
