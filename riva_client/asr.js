@@ -4,21 +4,20 @@
  */
 
 require('dotenv').config({ path: 'env.txt' });
-
-const defaultRate = 16000;
-const languageCode = 'en-US';
-
-// Because of a quirk in proto-loader, we use static code gen to get the AudioEncoding enum,
-// and dynamic loading for the rest.
-const rAudio = require('./protos/riva/proto/riva_audio_pb');
-
-const { Transform } = require('stream');
-
-var asrProto = 'riva/proto/riva_asr.proto';
-var protoRoot = __dirname + '/protos/';
 var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
 const { request } = require('express');
+
+
+const defaultRate = 16000;
+const languageCode = 'en-US';
+const { Transform } = require('stream');
+
+var protoRoot = __dirname + '/protos/riva/proto/';
+
+var asrProto = 'riva_asr.proto';
+var audioProto = 'riva_audio.proto';
+
 var protoOptions = {
     keepCase: true,
     longs: String,
@@ -28,14 +27,22 @@ var protoOptions = {
     includeDirs: [protoRoot]
 };
 var asrPkgDef = protoLoader.loadSync(asrProto, protoOptions);
-
 var rasr = grpc.loadPackageDefinition(asrPkgDef).nvidia.riva.asr;
+var audioPkgDef = protoLoader.loadSync(audioProto, protoOptions);
+var rAudio = grpc.loadPackageDefinition(audioPkgDef).nvidia.riva;
+const Encodings = {
+    ENCODING_UNSPECIFIED: rAudio.AudioEncoding.type.value[0].name,
+    LINEAR_PCM : rAudio.AudioEncoding.type.value[1].name,
+    FLAC : rAudio.AudioEncoding.type.value[2].name,
+    MULAW: rAudio.AudioEncoding.type.value[3].name,
+    ALAW: rAudio.AudioEncoding.type.value[4].name,
+}
 
 class ASRPipe {
 
     setupASR(sampleRateHz = 1600,
              languageCode ='en-US',
-             encoding = rAudio.AudioEncoding.LINEAR_PCM,
+             encoding = Encodings.LINEAR_PCM,
              maxAlts = 1,
              punctuate = true)   {
         this.asrClient = new rasr.RivaSpeechRecognition(process.env.RIVA_API_URL, grpc.credentials.createInsecure());

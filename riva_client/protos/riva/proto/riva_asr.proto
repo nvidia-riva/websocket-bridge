@@ -21,7 +21,7 @@ package nvidia.riva.asr;
 option cc_enable_arenas = true;
 option go_package = "nvidia.com/riva_speech";
 
-import "riva/proto/riva_audio.proto";
+import "riva_audio.proto";
 
 /*
  * The RivaSpeechRecognition service provides two mechanisms for converting speech to text.
