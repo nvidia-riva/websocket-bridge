@@ -13,7 +13,7 @@ const express = require('express');
 
 const { audioCodesControlMessage, wsServerConnection, wsServerClose }  = require('./modules/audiocodes');
 
-const ASRPipe = require('./riva_client/asr');
+const RivaASRClient = require('./riva_client/asr');
 
 const app = express();
 const port = (process.env.PORT);

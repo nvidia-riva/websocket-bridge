@@ -18,9 +18,6 @@ let rawWav = fs.readFileSync("./dualstream.pcm");
 let ws_server = 'wss://localhost:8009';
 var ws = new WebSocket(ws_server, {rejectUnauthorized: false});
 
-var sslkey = '../certificates/key.pem';
-var sslcert = '../certificates/cert.pem';
-
 let count = 0;
 ws.on('open', async function start() {
     console.log("connected to server");

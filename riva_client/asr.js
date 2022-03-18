@@ -38,7 +38,7 @@ const Encodings = {
     ALAW: rAudio.AudioEncoding.type.value[4].name,
 }
 
-class ASRPipe {
+class RivaASRClient {
 
     setupASR(sampleRateHz = 1600,
              languageCode ='en-US',
@@ -89,4 +89,4 @@ class ASRPipe {
     }
 }
 
-module.exports = ASRPipe;
+module.exports = RivaASRClient;

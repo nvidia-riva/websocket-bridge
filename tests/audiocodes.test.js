@@ -5,7 +5,7 @@
 
 import 'regenerator-runtime/runtime'
 const { audioCodesControlMessage, transcription_cb, wsServerConnection, serverMessage, wsServerClose, stateOf} = require('../modules/audiocodes');
-import ASRPipe from '../riva_client/asr';
+import RivaASRClient from '../riva_client/asr';
 import WebSocket from 'ws';
 
 
@@ -35,7 +35,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
             "sampleRateHz": 1600
         };
 
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let ws = new WebSocket('wss://localhost:8009');
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
         expect(ws.getMessages()[0]).toBe('{"type":"started"}');
@@ -46,7 +46,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
         var data = {
             "type": "stop",
         };
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let ws = new WebSocket('wss://localhost:8009');
         audioCodesControlMessage(JSON.stringify(data), asr, ws);
         expect(ws.getMessages()[0]).toBe('{"type":"end","reason":"stop by client"}');
@@ -62,7 +62,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
             "sampleRateHz": 1600
         };
 
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let ws = new WebSocket('wss://localhost:8009');
         let ws_state = stateOf.UNDEFINED;
 
@@ -80,7 +80,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
             "sampleRateHz": 1600
         };
 
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let ws = new WebSocket('wss://localhost:8009');
         let ws_state = stateOf.UNDEFINED;
 
@@ -94,7 +94,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
 
     test('binary message - before start', async () => {
         let ws = new WebSocket('wss://localhost:8009') ;
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let data = Buffer.alloc(4096);
         let ws_state = stateOf.UNDEFINED;
         ws_state = await serverMessage(data, true, ws, ws_state, asr);
@@ -110,7 +110,7 @@ describe('audioCodes protocol impl test suite - client messages', () => {
             "sampleRateHz": 1600
         };
 
-        let asr = new ASRPipe();
+        let asr = new RivaASRClient();
         let ws = new WebSocket('wss://localhost:8009');
         let ws_state = stateOf.UNDEFINED;
 

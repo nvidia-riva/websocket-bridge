@@ -7,7 +7,7 @@
 
 const asr = jest.createMockFromModule('../asr');
 
-class ASRPipe {
+class RivaASRClient {
 
     recognizeStream = {
         write: function(data) {
@@ -28,4 +28,4 @@ class ASRPipe {
 
 }
 
-module.exports = ASRPipe;
+module.exports = RivaASRClient;
