@@ -38,6 +38,11 @@ const Encodings = {
     ALAW: rAudio.AudioEncoding.type.value[4].name,
 }
 
+/*
+ * RivaASRclient is a grpc Client implementing the Riva API for ASR - Recognize and RecognizeStreaming requests.
+ *
+ */
+
 class RivaASRClient {
 
     setupASR(sampleRateHz = 1600,
