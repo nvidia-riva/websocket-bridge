@@ -32,7 +32,7 @@ The bridge can be built and executed both on bare-metal and with Docker.
 ### Docker
 Docker builds are preferred, to build the docker image:
 ```bash
-docker build -t riva-websocket .
+docker build -t websocket-bridge .
 ```
 
 

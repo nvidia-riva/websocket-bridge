@@ -4,7 +4,7 @@
  */
 
 require('dotenv').config({ path: 'env.txt' });
-var grpc = require('grpc');
+var grpc = require('@grpc/grpc-js');
 var protoLoader = require('@grpc/proto-loader');
 const { request } = require('express');
 
