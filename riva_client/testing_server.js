@@ -4,7 +4,7 @@ var PROTO_PATH = __dirname + '/protos/riva/proto/riva_asr.proto';
 
 //working from https://grpc.io/docs/languages/node/basics/
 
-var grpc = require('grpc');
+var grpc = require('@grpc/grpc-js');
 var protoLoader = require('@grpc/proto-loader');
 
 
@@ -72,8 +72,9 @@ function getASRServer() {
 }
 
 let server = getASRServer();
-
-server.bindAsync('0.0.0.0:50052', grpc.ServerCredentials.createInsecure(), () => {
+let uri = '0.0.0.0:50052';
+server.bindAsync(uri, grpc.ServerCredentials.createInsecure(), () => {
+    console.log("starting test server at " + uri);
     server.start();
 });
 
