@@ -4,7 +4,8 @@
  */
 
 require('dotenv').config({ path: 'env.txt' });
-var grpc = require('@grpc/grpc-js');
+//var grpc = require('@grpc/grpc-js');
+var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
 const { request } = require('express');
 
@@ -81,7 +82,7 @@ class RivaASRClient {
                 });
             })
             .on('error', (error) => {
-                console.log('Error via streamingRecognize callback');
+                console.log('Error via streamingRecognize callback' + error);
                 transcription_cb({
                     error: error
                 });
@@ -91,6 +92,9 @@ class RivaASRClient {
             });
 
         this.recognizeStream.write(this.firstRequest);
+    }
+    end() {
+        this.recognizeStream.end();
     }
 }
 
