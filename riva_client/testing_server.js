@@ -55,7 +55,11 @@ function StreamingRecognize(call){
             call.write(final_msg);
         }
     });
+    call.on('error', function(err) {
+        console.log(err);
+    });
     call.on('end', function() {
+        call.end();
         console.log("request ended for :");
     });
 

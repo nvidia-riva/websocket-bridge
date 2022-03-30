@@ -92,7 +92,7 @@ async function serverMessage(data, isBinary, ws, ws_state, asr) {
 
     if (!isBinary) {  // non-binary data will be string start/stop control messages
         ws_state = await  audioCodesControlMessage(data, asr, ws);
-        console.log("ws_socket->state : " + ws_state);
+        //console.log("ws_socket->state : " + ws_state);
         return ws_state;
     } else {
         if(ws_state == stateOf.STARTED) {
@@ -117,7 +117,7 @@ function wsServerConnection(ws, req) {
     let ws_state = stateOf.UNDEFINED;
     let asr = new RivaASRClient();
 
-    console.log('Client connected from %s', ip);
+    //console.log('Client connected from %s', ip);
 
     ws.on('message', async function serverMessage_cl(data, isBinary) {
         ws_state = await serverMessage(data, isBinary, ws, ws_state, asr);
@@ -128,7 +128,8 @@ function wsServerConnection(ws, req) {
         console.log(data);
     });
     ws.on('close', function close() {
-        console.log("closing connection for %s", ip);
+        //console.log("closing connection for %s", ip);
+        asr.end();
         ws.close();
     });
 
