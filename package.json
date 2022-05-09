@@ -30,7 +30,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.16.11",
     "babel-jest": "^27.5.1",
-    "jest": "^27.5.1",
+    "jest": "^28.1.0",
     "jest-websocket-mock": "^2.3.0",
     "ts-node": "^10.7.0"
   }
