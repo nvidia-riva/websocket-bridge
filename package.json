@@ -20,7 +20,7 @@
     "bluebird": "^3.7.2",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
-    "google-protobuf": "^3.20.0",
+    "google-protobuf": "^3.20.1",
     "grpc": "^1.24.11",
     "regenerator-runtime": "^0.13.9",
     "wavefile": "^11.0.0",
