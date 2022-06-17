@@ -50,7 +50,11 @@ class RivaASRClient {
              languageCode ='en-US',
              encoding = Encodings.LINEAR_PCM,
              maxAlts = 1,
-             punctuate = true)   {
+             punctuate = true,
+	     sttSpeechContexts )   {
+	encoding = Encodings.LINEAR_PCM;
+	console.log("###encoding##",encoding);
+	console.log("###speech_asr###",sttSpeechContexts);
         this.asrClient = new rasr.RivaSpeechRecognition(process.env.RIVA_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
@@ -59,7 +63,15 @@ class RivaASRClient {
                     sample_rate_hertz: sampleRateHz,
                     language_code: languageCode,
                     max_alternatives: maxAlts,
-                    enable_automatic_punctuation: true
+                    enable_automatic_punctuation: true,
+		    speech_contexts : sttSpeechContexts //[{
+                    //    phrases : ["Polypectomy","Nasopharynx","Delhi","Pepperoni","Florentine","Tropicana","Calzone","Fresco","Provolone","Vinaigrette","Mountain Dew"],//,"PLI","HCCC","ABI","AHLA","TRTA"],
+                    //    boost : 200.,
+                    //},{
+                    //    phrases : ["Hyderabad","SAICO","Cingna","DoD","chicken","coke"],
+                    //    boost : 100.
+                    //},
+		    //{"phrases":["HCC"],"boost":3000}]
                 },
                 interim_results: true
             }

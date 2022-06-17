@@ -58,10 +58,17 @@ function transcription_cb(result, ws) {
  */
 
 async function audioCodesControlMessage(data, asr, ws) {
+    //console.log("###data###",data);
     let msg_data = JSON.parse(data);
+    console.log("###msg_data###",JSON.stringify(msg_data));
+    console.log("###sttspeechcontext",JSON.stringify(msg_data.sttSpeechContexts))
     if (msg_data.type === "start") {
-        asr.setupASR(msg_data.sampleRateHz, msg_data.language);
-
+	if(!Object.keys(msg_data.sttSpeechContexts).length) {
+	    asr.setupASR(msg_data.sampleRateHz, msg_data.language);
+	}
+	else{
+            asr.setupASR(msg_data.sampleRateHz, msg_data.language, msg_data.encoding ,1 ,true, msg_data.sttSpeechContexts);
+	}
         try {
             asr.mainASR(function transcription_cbh(result) { transcription_cb(result, ws) });
         } catch (Error){
@@ -89,8 +96,11 @@ async function audioCodesControlMessage(data, asr, ws) {
  */
 const fs = require('fs');
 async function serverMessage(data, isBinary, ws, ws_state, asr) {
-
+    //console.log("####Payload data###",data);
+    //console.log("####Payload ws_state###",ws_state);
+    //console.log("####Payload asr###",asr);
     if (!isBinary) {  // non-binary data will be string start/stop control messages
+	//console.log("####Payload###",data);
         ws_state = await  audioCodesControlMessage(data, asr, ws);
         //console.log("ws_socket->state : " + ws_state);
         return ws_state;
@@ -98,12 +108,12 @@ async function serverMessage(data, isBinary, ws, ws_state, asr) {
         if(ws_state == stateOf.STARTED) {
             asr.recognizeStream.write({ audio_content: data });
             // may want to put this behind a feature flag to capture audio through bridge
-            // fs.appendFile('sampleaudio', data, err => {
-            //     if(err) {
-            //         console.log("bad capture from mic");
-            //         return
-            //         }
-            // });
+            fs.appendFile('sampleaudio', data, err => {
+                 if(err) {
+                     console.log("bad capture from mic");
+                     return
+                     }
+            });
             return ws_state;
         } else {
             console.log("Received binary stream on connection in invalid state " + ws_state + "  - send start message to begin stream");
