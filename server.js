@@ -8,7 +8,7 @@ require('dotenv').config({ path: 'env.txt' });
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
-const https = require('http');
+const https = require('https');
 const express = require('express');
 
 const { audioCodesControlMessage, wsServerConnection, wsServerClose }  = require('./modules/audiocodes');

@@ -44,10 +44,10 @@ function transcription_cb(result, ws) {
     // Log the transcript to console, overwriting non-final results
     process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
     if (!result.is_final) {
-        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
+        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
         ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
     } else {
-        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
+        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
         ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
         ws.send(JSON.stringify({ "type": "end", "reason": "Recognition complete" }));
     }
