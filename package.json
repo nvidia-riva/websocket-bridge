@@ -16,7 +16,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@grpc/grpc-js": "^1.6.7",
-    "@grpc/proto-loader": "^0.6.9",
+    "@grpc/proto-loader": "^0.6.13",
     "bluebird": "^3.7.2",
     "dotenv": "^16.0.1",
     "express": "^4.17.3",
@@ -24,7 +24,7 @@
     "grpc": "^1.24.11",
     "regenerator-runtime": "^0.13.9",
     "wavefile": "^11.0.0",
-    "ws": "^8.5.0",
+    "ws": "^8.8.0",
     "wscat": "^5.1.0"
   },
   "devDependencies": {
@@ -32,6 +32,6 @@
     "babel-jest": "^27.5.1",
     "jest": "^27.5.1",
     "jest-websocket-mock": "^2.3.0",
-    "ts-node": "^10.7.0"
+    "ts-node": "^10.8.1"
   }
 }
