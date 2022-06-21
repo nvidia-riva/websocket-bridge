@@ -28,7 +28,7 @@
     "wscat": "^5.1.0"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-env": "^7.18.2",
     "babel-jest": "^27.5.1",
     "jest": "^27.5.1",
     "jest-websocket-mock": "^2.3.0",
