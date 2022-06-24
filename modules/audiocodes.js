@@ -44,10 +44,10 @@ function transcription_cb(result, ws) {
     // Log the transcript to console, overwriting non-final results
     process.stdout.write(''.padEnd(process.stdout.columns, ' ') + '\r')
     if (!result.is_final) {
-        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
+        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\r');
         ws.send(JSON.stringify({ "type": "hypothesis", "alternatives": [{ "text": result.transcript }] }));
     } else {
-        process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
+        //process.stdout.write('TRANSCRIPT: ' + result.transcript + '\n');
         ws.send(JSON.stringify({ "type": "recognition", "alternatives": [{ "text": result.transcript }] }));
         ws.send(JSON.stringify({ "type": "end", "reason": "Recognition complete" }));
     }
@@ -103,12 +103,12 @@ async function serverMessage(data, isBinary, ws, ws_state, asr) {
         if(ws_state == stateOf.STARTED) {
             asr.recognizeStream.write({ audio_content: data });
             // may want to put this behind a feature flag to capture audio through bridge
-            //fs.appendFile('sampleaudio', data, err => {
+            // fs.appendFile('sampleaudio', data, err => {
             //     if(err) {
             //         console.log("bad capture from mic");
             //         return
             //         }
-            //});
+            // });
             return ws_state;
         } else {
             console.log("Received binary stream on connection in invalid state " + ws_state + "  - send start message to begin stream");
