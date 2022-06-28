@@ -62,7 +62,7 @@ class RivaASRClient {
                     language_code: languageCode,
                     max_alternatives: maxAlts,
                     enable_automatic_punctuation: true,
-		    speech_contexts : sttSpeechContexts
+		    speech_contexts: sttSpeechContexts
                 },
                 interim_results: true
             }

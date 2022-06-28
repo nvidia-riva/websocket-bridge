@@ -60,8 +60,6 @@ function transcription_cb(result, ws) {
 async function audioCodesControlMessage(data, asr, ws) {
     //console.log("###data###",data);
     let msg_data = JSON.parse(data);
-    console.log("###msg_data###",JSON.stringify(msg_data));
-    console.log("###sttspeechcontext",JSON.stringify(msg_data.sttSpeechContexts))
     if (msg_data.type === "start") {
 	if(!Object.keys(msg_data.sttSpeechContexts).length) {
 	    asr.setupASR(msg_data.sampleRateHz, msg_data.language);
