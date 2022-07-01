@@ -25,7 +25,7 @@
     "regenerator-runtime": "^0.13.9",
     "wavefile": "^11.0.0",
     "ws": "^8.8.0",
-    "wscat": "^5.1.0"
+    "wscat": "^5.2.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.18.6",
