@@ -32,6 +32,6 @@
     "babel-jest": "^28.1.1",
     "jest": "^28.1.1",
     "jest-websocket-mock": "^2.3.0",
-    "ts-node": "^10.8.1"
+    "ts-node": "^10.8.2"
   }
 }
