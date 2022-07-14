@@ -50,9 +50,7 @@ class RivaASRClient {
              languageCode ='en-US',
              encoding = Encodings.LINEAR_PCM,
              maxAlts = 1,
-             punctuate = true,
-	     sttSpeechContexts )   {
-	encoding = Encodings.LINEAR_PCM;
+             punctuate = true)   {
         this.asrClient = new rasr.RivaSpeechRecognition(process.env.RIVA_API_URL, grpc.credentials.createInsecure());
         this.firstRequest = {
             streaming_config: {
@@ -61,8 +59,7 @@ class RivaASRClient {
                     sample_rate_hertz: sampleRateHz,
                     language_code: languageCode,
                     max_alternatives: maxAlts,
-                    enable_automatic_punctuation: true,
-		    speech_contexts: sttSpeechContexts
+                    enable_automatic_punctuation: true
                 },
                 interim_results: true
             }
